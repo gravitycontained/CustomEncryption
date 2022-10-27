@@ -1,5 +1,158 @@
 #include <qpl/qpl.hpp>
 
+
+template<typename T, qpl::size N>
+using mat = std::array<std::array<T, N>, N>;
+
+template<typename T, qpl::size N>
+T matrix_determinant(mat<T, N> mat, qpl::size n = N) {
+	T num1, num2, det = 1, total = 1; // Initialize result
+
+	qpl::size index;
+
+	// temporary array for storing row
+	std::vector<T> temp(n + 1);
+
+	// loop for traversing the diagonal elements
+	for (qpl::size i = 0u; i < n; ++i) {
+		index = i; // initialize the index
+
+		// finding the index which has non zero value
+		while (index < n && mat[index][i] == 0) {
+			index++;
+		}
+		if (index == n) {
+			// if there is non zero element
+			// the determinant of matrix as zero
+			continue;
+		}
+		if (index != i) {
+			// loop for swapping the diagonal element row and
+			// index row
+			for (qpl::size j = 0u; j < n; ++j) {
+				std::swap(mat[index][j], mat[i][j]);
+			}
+			// determinant sign changes when we shift rows
+			// go through determinant properties
+			det = det * std::pow(-1, index - i);
+		}
+
+		// storing the values of diagonal row elements
+		for (qpl::size j = 0; j < n; ++j) {
+			temp[j] = mat[i][j];
+		}
+		// traversing every row below the diagonal element
+		for (qpl::size j = i + 1; j < n; ++j) {
+			num1 = temp[i]; // value of diagonal element
+			num2 = mat[j][i]; // value of next row element
+
+			// traversing every column of row
+			// and multiplying to every row
+			for (qpl::size k = 0; k < n; ++k) {
+				// multiplying to make the diagonal
+				// element and next row element equal
+				mat[j][k] = (num1 * mat[j][k]) - (num2 * temp[k]);
+			}
+			total = total * num1; // Det(kA)=kDet(A);
+		}
+	}
+
+	// multiplying the diagonal elements to get determinant
+	for (qpl::size i = 0; i < n; ++i) {
+		det = det * mat[i][i];
+	}
+	return (det / total); // Det(kA)/k=Det(A);
+}
+
+namespace galois {
+	constexpr auto add(int x, int y) {
+		return x ^ y;
+	}
+
+	constexpr auto mul(int x, int y) {
+		int z = 0;
+		for (int i = 0; i < 8; ++i) {
+			z ^= x & -(y & 1);
+			y >>= 1;
+			x <<= 1;
+			x ^= (0x11B & -(x >> 8));
+		}
+		return z;
+	}
+
+	template<typename T>
+	constexpr auto inverse(T x) {
+		T z = x;
+		for (int i = 0; i < 6; ++i) {
+			z = galois::mul(z, z);
+			z = galois::mul(z, x);
+		}
+		return galois::mul(z, z);
+	}
+
+	template<typename T>
+	constexpr auto divide(T x, T y) {
+		return galois::mul(x, galois::inverse(y));
+	}
+}
+
+template<typename T, qpl::size N>
+void print_matrix(mat<T, N> m) {
+	for (auto& i : m) {
+		qpl::print("[");
+		for (auto& i : i) {
+			qpl::print(qpl::str_spaced((int)i, 3), " ");
+		}
+		qpl::println("]");
+	}
+}
+
+template<typename T, qpl::size N>
+mat<T, N> galois_matrix_inverse(mat<T, N> M) {
+	mat<T, N> R{}; //fills R with 0s
+	for (unsigned i = 0; i < N; ++i) {
+		R[i][i] = 1; //makes the matrix the identity matrix
+	}
+	for (unsigned i = 0; i < N; ++i) {
+
+		//sets M[i][i] to 1, divide by row by inverse
+		auto diagonal = M[i][i];
+		auto inv = galois::inverse(diagonal);
+		for (unsigned row = 0; row < N; ++row) {
+			M[i][row] = galois::mul(inv, M[i][row]);
+			R[i][row] = galois::mul(inv, R[i][row]);
+		}
+
+		//pivots the column
+		for (unsigned col = 0; col < N; ++col) {
+			if (col == i) continue;
+
+			auto n = M[col][i];
+			for (unsigned row = 0; row < N; ++row) {
+				M[col][row] = galois::add(galois::mul(n, M[i][row]), M[col][row]);
+				R[col][row] = galois::add(galois::mul(n, R[i][row]), R[col][row]);
+			}
+		}
+	}
+	return R;
+}
+
+template<typename T, qpl::size N>
+mat<T, N> galois_matrix_multiply(const mat<T, N>& a, const mat<T, N>& b) {
+	mat<T, N> result;
+	for (qpl::size i = 0u; i < N; ++i) {
+		std::array<T, N> sum{};
+		for (qpl::size j = 0u; j < N; ++j) {
+			for (qpl::size k = 0u; k < N; ++k) {
+				sum[k] ^= galois::mul(a[j][k], b[i][j]);
+			}
+		}
+		result[i] = sum;
+	}
+	return result;
+}
+
+
 constexpr auto sbox = std::array {
 	std::array<qpl::u8, 256> { 0x62u, 0x57u, 0x93u, 0x47u, 0x08u, 0x44u, 0x41u, 0x61u, 0x78u, 0x10u, 0xb0u, 0x18u, 0xa4u, 0x54u, 0xa0u, 0x12u, 0x55u, 0xdcu, 0x6cu, 0xb6u, 0xd8u, 0xc6u, 0x21u, 0x30u, 0xeeu, 0xfau, 0xabu, 0xaeu, 0xd5u, 0x53u, 0x06u, 0x79u, 0x8bu, 0x59u, 0xbfu, 0xe6u, 0x46u, 0x0du, 0xccu, 0x74u, 0x22u, 0x43u, 0x56u, 0xddu, 0x83u, 0xd2u, 0x42u, 0x35u, 0x37u, 0xfcu, 0x20u, 0xc0u, 0xb9u, 0xc1u, 0x5cu, 0x2du, 0x8eu, 0x60u, 0xbbu, 0x32u, 0xb3u, 0x81u, 0xdfu, 0x8du, 0xb4u, 0xecu, 0xd3u, 0x1cu, 0x36u, 0x9au, 0xe1u, 0x86u, 0x15u, 0xe7u, 0xe9u, 0xefu, 0x72u, 0x1au, 0x38u, 0x11u, 0xcfu, 0x00u, 0x17u, 0x90u, 0x96u, 0x8cu, 0xa7u, 0x4du, 0x3cu, 0x05u, 0x40u, 0x50u, 0x5du, 0xb7u, 0x85u, 0xaau, 0x28u, 0x9eu, 0x75u, 0xebu, 0x91u, 0x5eu, 0x24u, 0xf2u, 0xc2u, 0x2cu, 0x13u, 0x25u, 0x0fu, 0xc7u, 0x73u, 0xf9u, 0x16u, 0x65u, 0x82u, 0xb2u, 0xfbu, 0x70u, 0x2fu, 0xbcu, 0x5fu, 0x9du, 0x89u, 0xa3u, 0x68u, 0x92u, 0x09u, 0xdbu, 0x97u, 0xb8u, 0x3fu, 0x27u, 0xcau, 0x88u, 0xa1u, 0xfdu, 0x45u, 0x66u, 0xeau, 0x39u, 0xe5u, 0xdau, 0x7au, 0x51u, 0x34u, 0xf0u, 0x7du, 0x1bu, 0x6eu, 0x0au, 0xadu, 0x76u, 0x9cu, 0xe0u, 0x94u, 0x0eu, 0xf7u, 0x07u, 0xe8u, 0xa8u, 0x4eu, 0xf8u, 0x26u, 0xdeu, 0xe2u, 0xc4u, 0x03u, 0xc5u, 0x02u, 0x3bu, 0x01u, 0x48u, 0xf6u, 0x14u, 0x3du, 0xfeu, 0xa6u, 0x49u, 0x52u, 0x77u, 0x4cu, 0xacu, 0xafu, 0xceu, 0x31u, 0x95u, 0xb5u, 0xd1u, 0x87u, 0x04u, 0xf1u, 0x4bu, 0xd4u, 0x63u, 0x7fu, 0xcbu, 0x64u, 0xbdu, 0x1du, 0x29u, 0x7eu, 0xf5u, 0xd0u, 0xe4u, 0xd6u, 0xe3u, 0xf3u, 0x9bu, 0xc8u, 0x6du, 0xc9u, 0xbeu, 0x5au, 0x67u, 0x2au, 0xedu, 0x2bu, 0x84u, 0xffu, 0xd9u, 0x7cu, 0x7bu, 0x58u, 0x98u, 0x71u, 0x3eu, 0x19u, 0x9fu, 0x3au, 0x6bu, 0x4fu, 0xb1u, 0xf4u, 0x5bu, 0xcdu, 0xd7u, 0x0bu, 0x33u, 0x6fu, 0x8au, 0x1eu, 0xc3u, 0x0cu, 0xbau, 0xa5u, 0x80u, 0xa9u, 0x2eu, 0x69u, 0x4au, 0x6au, 0x99u, 0x23u, 0xa2u, 0x1fu, 0x8fu },
 	std::array<qpl::u8, 256> { 0x53u, 0x28u, 0xe1u, 0x09u, 0x66u, 0xc6u, 0xdbu, 0xe6u, 0x7au, 0x33u, 0x80u, 0xc2u, 0x74u, 0x6du, 0x5au, 0xbdu, 0xa9u, 0xa5u, 0xc5u, 0x11u, 0xf5u, 0x2eu, 0x4fu, 0x95u, 0xcfu, 0xbbu, 0x9cu, 0xb4u, 0x01u, 0x99u, 0x9au, 0x35u, 0xf1u, 0x3bu, 0x86u, 0x61u, 0xd2u, 0x97u, 0x0du, 0x5fu, 0x20u, 0xaeu, 0xb3u, 0xfau, 0xb6u, 0xd8u, 0x17u, 0xadu, 0x7fu, 0xf4u, 0x63u, 0xa4u, 0x60u, 0x7eu, 0x37u, 0x5du, 0x72u, 0xf0u, 0xb1u, 0x58u, 0x0cu, 0x84u, 0xf8u, 0x0fu, 0x64u, 0x5cu, 0x9eu, 0x45u, 0xccu, 0x6cu, 0xc7u, 0x3au, 0xfbu, 0xfdu, 0x83u, 0x32u, 0x82u, 0x39u, 0xabu, 0x81u, 0x69u, 0x21u, 0x38u, 0x7cu, 0x94u, 0x73u, 0x76u, 0x10u, 0xe9u, 0x7du, 0xa3u, 0x22u, 0x55u, 0xbfu, 0x03u, 0x4au, 0x88u, 0x91u, 0xf6u, 0x41u, 0xb2u, 0xffu, 0xacu, 0xf3u, 0xafu, 0xa1u, 0xceu, 0xa8u, 0x18u, 0xb5u, 0x13u, 0x51u, 0xe5u, 0x62u, 0x19u, 0x2fu, 0xe2u, 0xbau, 0x50u, 0x2du, 0xdfu, 0xe8u, 0x65u, 0xf9u, 0xd5u, 0x79u, 0xe4u, 0xeeu, 0xb8u, 0x47u, 0x12u, 0xc3u, 0x59u, 0x3eu, 0x87u, 0xfcu, 0x0bu, 0xd4u, 0xb7u, 0x8cu, 0x52u, 0x89u, 0x0eu, 0x1cu, 0x1du, 0x06u, 0xcau, 0xc9u, 0x16u, 0x04u, 0xedu, 0xcdu, 0x9fu, 0xfeu, 0x77u, 0x3cu, 0x31u, 0xefu, 0x75u, 0xdcu, 0xf2u, 0x1au, 0x30u, 0xd0u, 0x43u, 0xddu, 0xd7u, 0x8fu, 0x29u, 0xaau, 0x2cu, 0x24u, 0xdeu, 0x08u, 0x4bu, 0xc0u, 0xa7u, 0x02u, 0xeau, 0x92u, 0x25u, 0xa6u, 0x96u, 0x42u, 0x9bu, 0xe0u, 0x1bu, 0x8du, 0x2bu, 0x40u, 0x6bu, 0x93u, 0x36u, 0x9du, 0x8au, 0x1eu, 0x3fu, 0x8bu, 0x6eu, 0xdau, 0xb0u, 0x26u, 0x67u, 0x00u, 0xe3u, 0x44u, 0xbeu, 0xa2u, 0x6au, 0xa0u, 0x56u, 0x4du, 0x4eu, 0x71u, 0xcbu, 0x46u, 0x15u, 0x27u, 0x3du, 0xd3u, 0x34u, 0x54u, 0x85u, 0xc4u, 0x05u, 0xb9u, 0xebu, 0x57u, 0x5eu, 0xe7u, 0x4cu, 0xd9u, 0xecu, 0x70u, 0x49u, 0xbcu, 0x5bu, 0x2au, 0xd6u, 0x23u, 0x90u, 0x8eu, 0x48u, 0x1fu, 0x7bu, 0xc8u, 0x68u, 0x6fu, 0xc1u, 0x98u, 0xd1u, 0xf7u, 0x78u, 0x07u, 0x14u, 0x0au },
@@ -385,15 +538,20 @@ struct encryption {
 	}
 };
 
+void check_avalanche(std::string message, std::string key) {
+
+	auto encrypted = qpl::encrypted_keep_size(message, key);
+
+	//qpl::size bits = 0u;
+	//qpl::size decrypted_active_bits = 0u;
+	//for (qpl::size i = 0u; i < encrypted.length(); ++i) {
+	//	bits1 += qpl::number_of_set_bits(encrypted[i]);
+	//	decrypted_active_bits += qpl::number_of_set_bits(decrypted[i]);
+	//}
+
+}
 
 void check_encryption(std::string message, std::string key) {
-	//encryption e;
-	//
-	//std::string rk;
-	//rk.resize(encryption::key_size);
-	//
-	//auto encrypted = e.encrypt(message, key);
-	//auto decrypted = e.decrypt(encrypted, key);
 
 	auto encrypted = qpl::encrypted_keep_size(message, key);
 	auto decrypted = qpl::decrypted_keep_size(encrypted, key);
@@ -405,6 +563,7 @@ void check_encryption(std::string message, std::string key) {
 		qpl::println();
 	}
 }
+
 void check_mistakes() {
 	qpl::small_clock clock;
 
@@ -505,10 +664,93 @@ void round_key() {
 
 }
 
-int main() try {
-	check_encryption("123123", "123");
+template<qpl::size N>
+auto apply_mds(std::array<qpl::u8, N * N> state, const mat<qpl::u8, N>& mat) {
 
-	check_mistakes();
+	std::array<qpl::u8, N * N> result;
+	for (qpl::size col = 0u; col < N; ++col) {
+
+		for (qpl::size m = 0u; m < N; ++m) {
+			qpl::u8 byte = 0;
+			for (qpl::size row = 0u; row < N; ++row) {
+				auto index = col * N + row;
+				byte ^= galois::mul(mat[m][row], state[index]);
+			}
+			result[col * N + m] = byte;
+		}
+	}
+	return result;
+}
+
+template<qpl::size N>
+void test_mds(const mat<qpl::u8, N>& m) {
+
+	std::array<qpl::u8, N * N> state;
+	for (auto& i : state) {
+		i = qpl::random(0, 255);
+	}
+
+	auto diffused = apply_mds(state, m);
+
+	auto m_inv = galois_matrix_inverse(m);
+	auto reverse = apply_mds(diffused, m_inv);
+
+	if (reverse != state) {
+		qpl::println("neq!");
+		print_matrix(m);
+		qpl::println();
+		print_matrix(m_inv);
+		for (auto& i : state) {
+			qpl::print((int)i, " ");
+		}
+		qpl::println();
+		for (auto& i : reverse) {
+			qpl::print((int)i, " ");
+		}
+		qpl::println();
+	}
+	else {
+		qpl::println("equal.");
+	}
+}
+
+template<qpl::size N>
+void find_mds() {
+
+	mat<qpl::u8, N> m;
+	//mat<qpl::u8, N> m =
+	//{ {
+	//	{2, 3, 1, 1},
+	//	{1, 2, 3, 1},
+	//	{1, 1, 2, 3},
+	//	{3, 1, 1, 2},
+	//} };
+
+	std::array<qpl::u8, N> row;
+	for (auto& i : row) {
+		i = qpl::random(0, 255);
+	}
+	for (qpl::size c = 0u; c < N; ++c) {
+		for (qpl::size i = 0u; i < N; ++i) {
+			m[c][i] = row[i + c % N];
+		}
+	}
+
+	auto n = galois_matrix_inverse(m);
+	print_matrix(n);
+
+	test_mds(m);
+
+	//while (true) {
+	//	find_mds<4u>();
+	//}
+}
+
+int main() try {
+	find_mds<4>();
+	//check_encryption("123123", "123");
+	//
+	//check_mistakes();
 }
 catch (std::exception& any) {
 	qpl::println("caught exception:\n", any.what());
