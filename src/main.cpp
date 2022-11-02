@@ -767,14 +767,14 @@ void check_mistakes() {
 
 
 		check_encryption(message, key);
-		check_avalanche(message, key);
+		//check_avalanche(message, key);
 		bytes += message.length();
 
 		if (qpl::get_time_signal(0.5)) {
 			auto byte_rate = qpl::size_cast(qpl::f64_cast(bytes) / clock.elapsed_f());
 			qpl::println(qpl::memory_size_string(bytes), " (", qpl::memory_size_string(byte_rate), " / sec)");
-			aval::mine.print(false);
-			aval::aes.print(true);
+			//aval::mine.print(false);
+			//aval::aes.print(true);
 			qpl::print_benchmark();
 		}
 	}
@@ -879,8 +879,8 @@ void create_output() {
 }
 
 int main() try {
-	create_output();
-	//check_mistakes();
+	//create_output();
+	check_mistakes();
 }
 catch (std::exception& any) {
 	qpl::println("caught exception:\n", any.what());
