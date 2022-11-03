@@ -875,12 +875,12 @@ void create_output() {
 	//auto b = qpl::binary_string(encrypted);
 
 	//qpl::write_data_file(encrypted, "binary.txt");
-	qpl::write_data_file(message, "binary.txt");
+	qpl::write_text_file(message, "binary.txt");
 }
 
 int main() try {
-	//create_output();
-	check_mistakes();
+	create_output();
+	//check_mistakes();
 }
 catch (std::exception& any) {
 	qpl::println("caught exception:\n", any.what());
