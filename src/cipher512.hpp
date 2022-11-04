@@ -369,7 +369,7 @@ struct cipher512 {
 				qpl::u8 byte = 0;
 				for (qpl::size r = 0u; r < this->state_grid_length; ++r) {
 					auto index = c * this->state_grid_length + r;
-					auto mds_index = c * this->state_grid_length + r;
+					auto mds_index = m * this->state_grid_length + r;
 
 					byte ^= table::galois_mul[mds[mds_index]][this->state[index]];
 				}
@@ -393,7 +393,7 @@ struct cipher512 {
 				qpl::u8 byte = 0;
 				for (qpl::size r = 0u; r < this->state_grid_length; ++r) {
 					auto index = c * this->state_grid_length + r;
-					auto mds_index = c * this->state_grid_length + r;
+					auto mds_index = m * this->state_grid_length + r;
 
 					byte ^= table::galois_mul[mds[mds_index]][this->state[index] ^ this->round_key[round * this->key_size + index]];
 				}

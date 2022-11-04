@@ -1,16 +1,19 @@
 #pragma once
 #include <qpl/qpl.hpp>
+#include "cipher512.hpp"
 
 struct cipher_config {
-	qpl::size N = 8;
-	qpl::size key_size = 64;
-	qpl::size rounds = 3;
-	qpl::size sbox_size = 16;
-	qpl::size mds_size = 16;
-	qpl::size shuffle_size = 16;
+	qpl::size N = 4;
+	qpl::size cipher_rounds = 3u;
+	qpl::size seeding_rounds = 2u;
+	qpl::size key_size = N * N;
+	qpl::size sbox_size = 16u;
+	qpl::size mds_size = 16u;
+	qpl::size shuffle_size = 16u;
 };
 
-constexpr std::array<std::array<qpl::u8, 256u>, 255u> galois_mul = {
+constexpr std::array<std::array<qpl::u8, 256u>, 256u> galois_mul = {
+	std::array<qpl::u8, 256>{ 0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0},
 	std::array<qpl::u8, 256>{ 0x0,0x1,0x2,0x3,0x4,0x5,0x6,0x7,0x8,0x9,0xa,0xb,0xc,0xd,0xe,0xf,0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18,0x19,0x1a,0x1b,0x1c,0x1d,0x1e,0x1f,0x20,0x21,0x22,0x23,0x24,0x25,0x26,0x27,0x28,0x29,0x2a,0x2b,0x2c,0x2d,0x2e,0x2f,0x30,0x31,0x32,0x33,0x34,0x35,0x36,0x37,0x38,0x39,0x3a,0x3b,0x3c,0x3d,0x3e,0x3f,0x40,0x41,0x42,0x43,0x44,0x45,0x46,0x47,0x48,0x49,0x4a,0x4b,0x4c,0x4d,0x4e,0x4f,0x50,0x51,0x52,0x53,0x54,0x55,0x56,0x57,0x58,0x59,0x5a,0x5b,0x5c,0x5d,0x5e,0x5f,0x60,0x61,0x62,0x63,0x64,0x65,0x66,0x67,0x68,0x69,0x6a,0x6b,0x6c,0x6d,0x6e,0x6f,0x70,0x71,0x72,0x73,0x74,0x75,0x76,0x77,0x78,0x79,0x7a,0x7b,0x7c,0x7d,0x7e,0x7f,0x80,0x81,0x82,0x83,0x84,0x85,0x86,0x87,0x88,0x89,0x8a,0x8b,0x8c,0x8d,0x8e,0x8f,0x90,0x91,0x92,0x93,0x94,0x95,0x96,0x97,0x98,0x99,0x9a,0x9b,0x9c,0x9d,0x9e,0x9f,0xa0,0xa1,0xa2,0xa3,0xa4,0xa5,0xa6,0xa7,0xa8,0xa9,0xaa,0xab,0xac,0xad,0xae,0xaf,0xb0,0xb1,0xb2,0xb3,0xb4,0xb5,0xb6,0xb7,0xb8,0xb9,0xba,0xbb,0xbc,0xbd,0xbe,0xbf,0xc0,0xc1,0xc2,0xc3,0xc4,0xc5,0xc6,0xc7,0xc8,0xc9,0xca,0xcb,0xcc,0xcd,0xce,0xcf,0xd0,0xd1,0xd2,0xd3,0xd4,0xd5,0xd6,0xd7,0xd8,0xd9,0xda,0xdb,0xdc,0xdd,0xde,0xdf,0xe0,0xe1,0xe2,0xe3,0xe4,0xe5,0xe6,0xe7,0xe8,0xe9,0xea,0xeb,0xec,0xed,0xee,0xef,0xf0,0xf1,0xf2,0xf3,0xf4,0xf5,0xf6,0xf7,0xf8,0xf9,0xfa,0xfb,0xfc,0xfd,0xfe,0xff},
 	std::array<qpl::u8, 256>{ 0x0,0x2,0x4,0x6,0x8,0xa,0xc,0xe,0x10,0x12,0x14,0x16,0x18,0x1a,0x1c,0x1e,0x20,0x22,0x24,0x26,0x28,0x2a,0x2c,0x2e,0x30,0x32,0x34,0x36,0x38,0x3a,0x3c,0x3e,0x40,0x42,0x44,0x46,0x48,0x4a,0x4c,0x4e,0x50,0x52,0x54,0x56,0x58,0x5a,0x5c,0x5e,0x60,0x62,0x64,0x66,0x68,0x6a,0x6c,0x6e,0x70,0x72,0x74,0x76,0x78,0x7a,0x7c,0x7e,0x80,0x82,0x84,0x86,0x88,0x8a,0x8c,0x8e,0x90,0x92,0x94,0x96,0x98,0x9a,0x9c,0x9e,0xa0,0xa2,0xa4,0xa6,0xa8,0xaa,0xac,0xae,0xb0,0xb2,0xb4,0xb6,0xb8,0xba,0xbc,0xbe,0xc0,0xc2,0xc4,0xc6,0xc8,0xca,0xcc,0xce,0xd0,0xd2,0xd4,0xd6,0xd8,0xda,0xdc,0xde,0xe0,0xe2,0xe4,0xe6,0xe8,0xea,0xec,0xee,0xf0,0xf2,0xf4,0xf6,0xf8,0xfa,0xfc,0xfe,0x1b,0x19,0x1f,0x1d,0x13,0x11,0x17,0x15,0xb,0x9,0xf,0xd,0x3,0x1,0x7,0x5,0x3b,0x39,0x3f,0x3d,0x33,0x31,0x37,0x35,0x2b,0x29,0x2f,0x2d,0x23,0x21,0x27,0x25,0x5b,0x59,0x5f,0x5d,0x53,0x51,0x57,0x55,0x4b,0x49,0x4f,0x4d,0x43,0x41,0x47,0x45,0x7b,0x79,0x7f,0x7d,0x73,0x71,0x77,0x75,0x6b,0x69,0x6f,0x6d,0x63,0x61,0x67,0x65,0x9b,0x99,0x9f,0x9d,0x93,0x91,0x97,0x95,0x8b,0x89,0x8f,0x8d,0x83,0x81,0x87,0x85,0xbb,0xb9,0xbf,0xbd,0xb3,0xb1,0xb7,0xb5,0xab,0xa9,0xaf,0xad,0xa3,0xa1,0xa7,0xa5,0xdb,0xd9,0xdf,0xdd,0xd3,0xd1,0xd7,0xd5,0xcb,0xc9,0xcf,0xcd,0xc3,0xc1,0xc7,0xc5,0xfb,0xf9,0xff,0xfd,0xf3,0xf1,0xf7,0xf5,0xeb,0xe9,0xef,0xed,0xe3,0xe1,0xe7,0xe5},
 	std::array<qpl::u8, 256>{ 0x0,0x3,0x6,0x5,0xc,0xf,0xa,0x9,0x18,0x1b,0x1e,0x1d,0x14,0x17,0x12,0x11,0x30,0x33,0x36,0x35,0x3c,0x3f,0x3a,0x39,0x28,0x2b,0x2e,0x2d,0x24,0x27,0x22,0x21,0x60,0x63,0x66,0x65,0x6c,0x6f,0x6a,0x69,0x78,0x7b,0x7e,0x7d,0x74,0x77,0x72,0x71,0x50,0x53,0x56,0x55,0x5c,0x5f,0x5a,0x59,0x48,0x4b,0x4e,0x4d,0x44,0x47,0x42,0x41,0xc0,0xc3,0xc6,0xc5,0xcc,0xcf,0xca,0xc9,0xd8,0xdb,0xde,0xdd,0xd4,0xd7,0xd2,0xd1,0xf0,0xf3,0xf6,0xf5,0xfc,0xff,0xfa,0xf9,0xe8,0xeb,0xee,0xed,0xe4,0xe7,0xe2,0xe1,0xa0,0xa3,0xa6,0xa5,0xac,0xaf,0xaa,0xa9,0xb8,0xbb,0xbe,0xbd,0xb4,0xb7,0xb2,0xb1,0x90,0x93,0x96,0x95,0x9c,0x9f,0x9a,0x99,0x88,0x8b,0x8e,0x8d,0x84,0x87,0x82,0x81,0x9b,0x98,0x9d,0x9e,0x97,0x94,0x91,0x92,0x83,0x80,0x85,0x86,0x8f,0x8c,0x89,0x8a,0xab,0xa8,0xad,0xae,0xa7,0xa4,0xa1,0xa2,0xb3,0xb0,0xb5,0xb6,0xbf,0xbc,0xb9,0xba,0xfb,0xf8,0xfd,0xfe,0xf7,0xf4,0xf1,0xf2,0xe3,0xe0,0xe5,0xe6,0xef,0xec,0xe9,0xea,0xcb,0xc8,0xcd,0xce,0xc7,0xc4,0xc1,0xc2,0xd3,0xd0,0xd5,0xd6,0xdf,0xdc,0xd9,0xda,0x5b,0x58,0x5d,0x5e,0x57,0x54,0x51,0x52,0x43,0x40,0x45,0x46,0x4f,0x4c,0x49,0x4a,0x6b,0x68,0x6d,0x6e,0x67,0x64,0x61,0x62,0x73,0x70,0x75,0x76,0x7f,0x7c,0x79,0x7a,0x3b,0x38,0x3d,0x3e,0x37,0x34,0x31,0x32,0x23,0x20,0x25,0x26,0x2f,0x2c,0x29,0x2a,0xb,0x8,0xd,0xe,0x7,0x4,0x1,0x2,0x13,0x10,0x15,0x16,0x1f,0x1c,0x19,0x1a},
@@ -272,7 +275,7 @@ constexpr std::array<qpl::u8, 256> galois_inverse{ 0x0, 0x1, 0x8d, 0xf6, 0xcb, 0
 
 template<typename T>
 constexpr auto galois_divide(T x, T y) {
-	return galois_mul[x - 1][galois_inverse[y]];
+	return galois_mul[x][galois_inverse[y]];
 }
 
 template<typename T, qpl::size S>
@@ -287,8 +290,8 @@ constexpr std::array<T, S> galois_matrix_inverse(std::array<T, S> M) {
 		auto diagonal = M[i * N + i];
 		auto inv = galois_inverse[diagonal];
 		for (qpl::size r = 0; r < N; ++r) {
-			M[i * N + r] = galois_mul[inv - 1][M[i * N + r]];
-			R[i * N + r] = galois_mul[inv - 1][R[i * N + r]];
+			M[i * N + r] = galois_mul[inv][M[i * N + r]];
+			R[i * N + r] = galois_mul[inv][R[i * N + r]];
 		}
 
 		for (qpl::size c = 0; c < N; ++c) {
@@ -296,14 +299,13 @@ constexpr std::array<T, S> galois_matrix_inverse(std::array<T, S> M) {
 
 			auto n = M[c * N + i];
 			for (qpl::size r = 0; r < N; ++r) {
-				M[c * N + r] = galois_mul[n - 1][M[i * N + r]] ^ M[c * N + r];
-				R[c * N + r] = galois_mul[n - 1][R[i * N + r]] ^ R[c * N + r];
+				M[c * N + r] = galois_mul[n][M[i * N + r]] ^ M[c * N + r];
+				R[c * N + r] = galois_mul[n][R[i * N + r]] ^ R[c * N + r];
 			}
 		}
 	}
 	return R;
 }
-
 
 template<typename T, qpl::size S>
 void print_matrix(const std::array<T, S>& m) {
@@ -336,14 +338,14 @@ constexpr T galois_matrix_determinant(std::array<T, S> M) {
 			num2 = M[j * N + i];
 
 			for (qpl::size k = 0; k < N; ++k) {
-				M[j * N + k] = galois_mul[num1 - 1][M[j * N + k]] ^ galois_mul[num2 - 1][temp[k]];
+				M[j * N + k] = galois_mul[num1][M[j * N + k]] ^ galois_mul[num2][temp[k]];
 			}
-			total = galois_mul[total - 1][num1];
+			total = galois_mul[total][num1];
 		}
 	}
 
 	for (qpl::size i = 0; i < N; ++i) {
-		det = galois_mul[det - 1][M[i * N + i]];
+		det = galois_mul[det][M[i * N + i]];
 	}
 	return galois_divide(det, total);
 }
@@ -388,8 +390,6 @@ constexpr auto check_if_mds(const std::array<T, MS>& M) {
 		return (check_if_mds<i + 2>(M) && ...);
 	}); 
 }
-
-
 
 template<qpl::size N>
 constexpr auto get_array_0_n() {
@@ -468,7 +468,7 @@ struct lookup_table {
 		std::array<qpl::u8, size> row;
 		std::array<qpl::u8, size> col;
 
-		for (qpl::size round = 0u; round < 3u; ++round) {
+		for (qpl::size round = 0u; round < config.seeding_rounds; ++round) {
 			for (qpl::size r = 0u; r < size; ++r) {
 				for (qpl::size m = 0u; m < size; ++m) {
 					qpl::u8 byte = 0;
@@ -476,7 +476,7 @@ struct lookup_table {
 						auto index = c * size + r;
 						auto mds_index = ((c * size + m) + r) % size;
 
-						byte ^= galois_mul[mds1[mds_index] - 1][sbox1[state[index]]];
+						byte ^= galois_mul[mds1[mds_index]][sbox1[state[index]]];
 					}
 					col[m] = byte;
 				}
@@ -493,7 +493,7 @@ struct lookup_table {
 						auto index = c * size + r;
 						auto mds_index = ((c * size + m) + r) % size;
 
-						byte ^= galois_mul[mds2[mds_index] - 1][sbox2[state[index]]];
+						byte ^= galois_mul[mds2[mds_index]][sbox2[state[index]]];
 					}
 					row[m] = byte;
 				}
@@ -509,9 +509,7 @@ struct lookup_table {
 			for (qpl::size b = 0u; b < 4u; ++b) {
 				random_data[i] |= (qpl::u32_cast(state[i * 4u + b]) << (b * 8u));
 			}
-			qpl::print(qpl::hex_string(random_data[i], "", {}, true));
 		}
-		qpl::println();
 
 		std::seed_seq seeds(std::begin(random_data), std::end(random_data));
 		engine.seed(seeds);
@@ -560,6 +558,7 @@ struct lookup_table {
 		}
 	}
 	void generate_mds(qpl::random_engine<64u>& engine) {
+
 		for (qpl::size s = 0u; s < this->mds.size(); ++s) {
 			while (true) {
 				for (qpl::size i = 0u; i < config.N; ++i) {
@@ -570,12 +569,12 @@ struct lookup_table {
 						this->mds[s][c * config.N + r] = this->mds[s][(r + c) % config.N];
 					}
 				}
+
 				this->mds_inverse[s] = galois_matrix_inverse(this->mds[s]);
 				auto nonzero = galois_matrix_nonzero(this->mds_inverse[s]);
 
 				auto valid_mds = nonzero && check_if_mds(this->mds[s]);
 				if (valid_mds) {
-					print_matrix(this->mds[s]);
 					break;
 				}
 			}
@@ -584,26 +583,10 @@ struct lookup_table {
 
 	void create(const std::string_view& key) {
 		qpl::random_engine<64u> engine;
-
-		qpl::begin_benchmark("random_state");
-
 		this->seed_state(key, engine);
-
-		qpl::begin_benchmark_end_previous("sbox");
-
 		this->generate_sbox(engine);
-
-		qpl::begin_benchmark_end_previous("shuffle");
-
 		this->generate_shuffle(engine);
-
-		qpl::begin_benchmark_end_previous("mds");
-
 		this->generate_mds(engine);
-
-		qpl::end_benchmark();
-
-		qpl::print_benchmark();
 	}
 };
 
@@ -611,50 +594,52 @@ template<cipher_config config>
 struct cipherN {
 	constexpr static auto N = config.N;
 	constexpr static auto key_size = config.key_size;
-	constexpr static auto rounds = config.rounds;
+	constexpr static auto cipher_rounds = config.cipher_rounds;
 	constexpr static auto sbox_size = config.sbox_size;
 	constexpr static auto mds_size = config.mds_size;
 	constexpr static auto shuffle_size = config.shuffle_size;
+	constexpr static auto state_size = N * N;
+	constexpr static auto round_key_size = state_size * cipher_rounds;
 
+private:
 	std::vector<qpl::u8> input;
 	std::vector<qpl::u8> output;
 	std::array<qpl::u8, N * N> state;
 	std::array<qpl::u8, N * N> last_state;
-	std::array<qpl::u8, key_size * rounds> round_key;
+	std::array<qpl::u8, round_key_size> round_key;
+	std::string key;
+	
 	qpl::size states = 0u;
 	qpl::size state_ctr = 0u;
 	qpl::u8 state_byte = 0u;
 
 	static lookup_table<config> table;
+public:
 
-	constexpr qpl::size state_size() const {
-		return this->N * this->N;
-	}
-
-	/*
+	
 	void input_cipher_state() {
-		auto index = this->state_ctr * this->state_size();
-		for (qpl::size i = 0u; i < this->state_size(); ++i) {
+		auto index = this->state_ctr * this->state_size;
+		for (qpl::size i = 0u; i < this->state_size; ++i) {
 			auto m = this->input[index + i];
 			this->state[i] = m ^ this->last_state[i];
 		}
 	}
 	void output_cipher_state() {
-		auto index = this->state_ctr * this->state_size();
-		for (qpl::size i = 0u; i < this->state_size(); ++i) {
+		auto index = this->state_ctr * this->state_size;
+		for (qpl::size i = 0u; i < this->state_size; ++i) {
 			this->output[index + i] = this->state[i];
 		}
 	}
 	void input_decipher_state() {
-		auto index = this->state_ctr * this->state_size();
-		for (qpl::size i = 0u; i < this->state_size(); ++i) {
+		auto index = this->state_ctr * this->state_size;
+		for (qpl::size i = 0u; i < this->state_size; ++i) {
 			auto m = this->input[index + i];
 			this->state[i] = m;
 		}
 	}
 	void output_decipher_state() {
-		auto index = this->state_ctr * this->state_size();
-		for (qpl::size i = 0u; i < this->state_size(); ++i) {
+		auto index = this->state_ctr * this->state_size;
+		for (qpl::size i = 0u; i < this->state_size; ++i) {
 			this->output[index + i] = this->state[i] ^ this->last_state[i];
 		}
 	}
@@ -663,7 +648,7 @@ struct cipherN {
 		auto key_index = round * this->key_size;
 		auto mds_index      = (this->round_key[key_index] ^ this->state_byte) % this->mds_size;
 		auto sbox_index     = (this->round_key[key_index] ^ this->state_byte) % this->sbox_size;
-		auto shuffle_index  = (this->round_key[key_index] ^ this->state_byte) % this->index_size;
+		auto shuffle_index  = (this->round_key[key_index] ^ this->state_byte) % this->shuffle_size;
 		const auto& mds     = this->table.mds[mds_index];
 		const auto& sbox    = this->table.sbox[sbox_index];
 		const auto& shuffle = this->table.shuffle[shuffle_index];
@@ -677,10 +662,13 @@ struct cipherN {
 					auto index = c * this->N + r;
 					auto mds_index = c * this->N + m;
 
-					auto value = sbox[copy[shuffle[index]]];
-					byte ^= this->table.galois_mul[mds[mds_index]][value];
+					//auto value = sbox[copy[shuffle[index]]];
+					auto value = copy[index];
+					byte ^= galois_mul[mds[mds_index]][value];
 				}
 				col[m] = byte;
+
+				qpl::println("col [", c, "][", r, "] = ", qpl::hex_string(byte, "", {}, true));
 			}
 			for (qpl::size i = 0u; i < this->N; ++i) {
 				auto index = i * this->N + r;
@@ -693,6 +681,27 @@ struct cipherN {
 		auto mds_index = (this->round_key[key_index] ^ this->state_byte) % this->mds_size;
 		const auto& mds = this->table.mds[mds_index];
 
+		/*
+		
+		for (qpl::u32 columns = 0u; columns < 4u; ++columns) {
+
+			auto index0 = columns * 4 + 0;
+			auto index1 = columns * 4 + 1;
+			auto index2 = columns * 4 + 2;
+			auto index3 = columns * 4 + 3;
+
+			std::array<qpl::u8, 4u> temp;
+			temp[0] = qpl::detail::aes_tables::mul2[this->m_state[index0]] ^ qpl::detail::aes_tables::mul3[this->m_state[index1]] ^ qpl::detail::aes_tables::mul1[this->m_state[index2]] ^ qpl::detail::aes_tables::mul1[this->m_state[index3]];
+			temp[1] = qpl::detail::aes_tables::mul1[this->m_state[index0]] ^ qpl::detail::aes_tables::mul2[this->m_state[index1]] ^ qpl::detail::aes_tables::mul3[this->m_state[index2]] ^ qpl::detail::aes_tables::mul1[this->m_state[index3]];
+			temp[2] = qpl::detail::aes_tables::mul1[this->m_state[index0]] ^ qpl::detail::aes_tables::mul1[this->m_state[index1]] ^ qpl::detail::aes_tables::mul2[this->m_state[index2]] ^ qpl::detail::aes_tables::mul3[this->m_state[index3]];
+			temp[3] = qpl::detail::aes_tables::mul3[this->m_state[index0]] ^ qpl::detail::aes_tables::mul1[this->m_state[index1]] ^ qpl::detail::aes_tables::mul1[this->m_state[index2]] ^ qpl::detail::aes_tables::mul2[this->m_state[index3]];
+
+			for (qpl::u32 i = 0; i < 4; ++i) {
+				this->m_state[columns * 4 + i] = temp[i];
+			}
+		}
+		*/
+
 		std::array<qpl::u8, this->N> row;
 		for (qpl::size c = 0u; c < this->N; ++c) {
 			for (qpl::size m = 0u; m < this->N; ++m) {
@@ -701,13 +710,15 @@ struct cipherN {
 					auto index = c * this->N + r;
 					auto mds_index = m * this->N + r;
 
-					byte ^= this->table.galois_mul[mds[mds_index]][this->state[index]];
+					byte ^= galois_mul[mds[mds_index]][this->state[index]];
 				}
 				row[m] = byte;
+				qpl::println("row [", c, "][", r, "] = ", qpl::hex_string(byte, "", {}, true));
 			}
 			for (qpl::size i = 0u; i < this->N; ++i) {
 				auto index = c * this->N + i;
-				this->state[index] = row[i] ^ this->round_key[round * this->key_size + index];
+				//this->state[index] = row[i] ^ this->round_key[round * this->key_size + index];
+				this->state[index] = row[i];
 			}
 		}
 	}
@@ -725,7 +736,8 @@ struct cipherN {
 					auto index = c * this->N + r;
 					auto mds_index = m * this->N + r;
 
-					byte ^= this->table.galois_mul[mds[mds_index]][this->state[index] ^ this->round_key[round * this->key_size + index]];
+					auto value = copy[index];
+					byte ^= galois_mul[mds[mds_index]][value ^ this->round_key[round * this->key_size + index]];
 				}
 				row[m] = byte;
 			}
@@ -738,7 +750,7 @@ struct cipherN {
 		auto key_index = round * this->key_size;
 		auto mds_index      = (this->round_key[key_index] ^ this->state_byte) % this->mds_size;
 		auto sbox_index     = (this->round_key[key_index] ^ this->state_byte) % this->sbox_size;
-		auto shuffle_index  = (this->round_key[key_index] ^ this->state_byte) % this->index_size;
+		auto shuffle_index  = (this->round_key[key_index] ^ this->state_byte) % this->shuffle_size;
 		const auto& mds     = this->table.mds_inverse[mds_index];
 		const auto& sbox    = this->table.sbox_inverse[sbox_index];
 		const auto& shuffle = this->table.shuffle_inverse[shuffle_index];
@@ -752,25 +764,46 @@ struct cipherN {
 					auto index = c * this->N + r;
 					auto mds_index = c * this->N + m;
 
-					byte ^= this->table.galois_mul[mds[mds_index]][copy[index]];
+					byte ^= galois_mul[mds[mds_index]][copy[index]];
 				}
 				col[m] = byte;
 			}
 			for (qpl::size i = 0u; i < this->N; ++i) {
 				auto index = i * this->N + r;
-				this->state[shuffle[index]] = sbox[col[i]];
+				//this->state[shuffle[index]] = sbox[col[i]];
+				this->state[index] = col[i];
 			}
 		}
 	}
 
+	void print_state() {
+		for (qpl::size i = 0u; i < this->state.size(); ++i) {
+			if (i && i % this->N == 0) qpl::print('\n');
+			qpl::print(qpl::hex_string(this->state[i], "", {}, true));
+		}
+		qpl::println();
+	}
+
 	void cipher_rotation() {
-		for (qpl::size round = 0u; round < this->rounds; ++round) {
+		for (qpl::size round = 0u; round < this->cipher_rounds; ++round) {
+			if (!round) {
+				qpl::println("state : ");
+				this->print_state();
+			}
+
 			this->sub_shuffle_mix_rows(round);
+
+			qpl::println("rows : ");
+			this->print_state();
+
 			this->mix_columns_add_roundkey(round);
+
+			qpl::println("cols : ");
+			this->print_state();
 		}
 	}
 	void decipher_rotation() {
-		for (qpl::isize round = this->rounds - 1; round >= 0; --round) {
+		for (qpl::isize round = this->cipher_rounds - 1; round >= 0; --round) {
 			this->add_roundkey_unmix_columns(qpl::size_cast(round));
 			this->unmix_rows_sub_shuffle(qpl::size_cast(round));
 		}
@@ -780,38 +813,38 @@ struct cipherN {
 		for (qpl::isize i = this->states - 2; i >= 0; --i) {
 			this->state_ctr = qpl::size_cast(i);
 
-			this->sub_shuffle_mix_rows(i % this->rounds);
-			this->mix_columns_add_roundkey(i % this->rounds);
+			this->sub_shuffle_mix_rows(i % this->cipher_rounds);
+			this->mix_columns_add_roundkey(i % this->cipher_rounds);
 
-			auto index = this->state_ctr * this->state_size();
-			for (qpl::size i = 0u; i < this->state_size(); ++i) {
+			auto index = this->state_ctr * this->state_size;
+			for (qpl::size i = 0u; i < this->state_size; ++i) {
 				this->output[index + i] ^= this->state[i];
 			}
 		}
 	}
 	void sub_reverse_state_rotation() {
-		auto index = (this->states - 1) * this->state_size();
-		for (qpl::size i = 0u; i < this->state_size(); ++i) {
+		auto index = (this->states - 1) * this->state_size;
+		for (qpl::size i = 0u; i < this->state_size; ++i) {
 			this->state[i] = this->input[index + i];
 		}
 
 		for (qpl::isize i = this->states - 2; i >= 0; --i) {
 			this->state_ctr = qpl::size_cast(i);
 
-			this->sub_shuffle_mix_rows(i % this->rounds);
-			this->mix_columns_add_roundkey(i % this->rounds);
+			this->sub_shuffle_mix_rows(i % this->cipher_rounds);
+			this->mix_columns_add_roundkey(i % this->cipher_rounds);
 
-			auto index = this->state_ctr * this->state_size();
-			for (qpl::size i = 0u; i < this->state_size(); ++i) {
+			auto index = this->state_ctr * this->state_size;
+			for (qpl::size i = 0u; i < this->state_size; ++i) {
 				this->input[index + i] ^= this->state[i];
 			}
 		}
 	}
 
 	void calculate_state_byte() {
-		const auto& table64 = this->table.tables64[this->state_ctr % this->table.tables64.size()];
-		const auto& sbox = this->table.sbox[0xE];
-		this->state_byte = sbox[this->last_state[table64[this->state_byte % table64.size()]]];
+		const auto& shuffle = this->table.shuffle[this->state_byte % this->shuffle_size];
+		const auto& sbox = this->table.sbox[0xE % this->sbox_size];
+		this->state_byte = sbox[this->last_state[shuffle[this->state_ctr % this->state_size]]];
 	}
 
 	void cipher() {
@@ -827,16 +860,14 @@ struct cipherN {
 
 			this->cipher_rotation();
 			this->output_cipher_state();
+
+			qpl::println("state[", this->state_ctr, "]");
 		}
 
-		if constexpr (bidirectional_state_rotation) {
-			this->add_reverse_state_rotation();
-		}
+		this->add_reverse_state_rotation();
 	}
 	void decipher() {
-		if constexpr (bidirectional_state_rotation) {
-			this->sub_reverse_state_rotation();
-		}
+		this->sub_reverse_state_rotation();
 
 		this->state.fill(0u);
 		this->last_state[0] = 0u;
@@ -856,31 +887,36 @@ struct cipherN {
 	}
 
 	void create_round_key(const std::string_view& key) {
-		std::array<qpl::u8, this->key_size> last_key_state{};
-		std::array<qpl::u8, this->key_size> key_state{};
+
+		std::array<qpl::u8, this->key_size> full_key{};
+		std::array<qpl::u8, this->state_size> last_key_state{};
+		std::array<qpl::u8, this->state_size> key_state{};
 
 		for (qpl::size i = 0u; i < qpl::min(key.length(), this->key_size); ++i) {
-			key_state[i] = key[i];
+			full_key[i] = qpl::u8_cast(key[i]);
 		}
 
-		for (qpl::size round = 0u; round < this->rounds; ++round) {
-			auto round_mod = qpl::u8_cast((round ^ last_key_state[0]) % this->table.sbox.size());
-			const auto& b16 = this->table.tables16[(round ^ this->table.sbox[round_mod][key_state[round]]) % this->table.tables16.size()];
-
-			for (qpl::size i = 0u; i < this->key_size; ++i) {
-				key_state[i] = this->table.sbox[b16[0]][key_state[i]];
+		for (qpl::size round = 0u; round < this->cipher_rounds; ++round) {
+			auto round_index = round * this->state_size;
+			auto stop = qpl::min(qpl::signed_cast(this->key_size) - qpl::signed_cast(round_index), qpl::signed_cast(this->state_size));
+			for (qpl::isize i = 0; i < stop; ++i) {
+				key_state[i] ^= full_key[i + round_index];
 			}
 
-			auto key_hash = key_state[this->key_size / 2] % (this->table.tables64.size());
-			const auto& table = this->table.tables64[key_hash];
+
+			auto center_index = (this->N / 2) * this->N + (this->N / 2);
+			auto sbox_index = qpl::u8_cast(round ^ last_key_state[0]) % this->sbox_size;
+			auto shuffle_index = key_state[center_index] % this->shuffle_size;
+			auto mds_index = key_state.back() % this->mds_size;
+
+			const auto& sbox = this->table.sbox[sbox_index];
+			const auto& shuffle = this->table.shuffle[shuffle_index];
+			const auto& mds = this->table.mds[mds_index];
 
 			auto copy = key_state;
-			for (qpl::size i = 0u; i < this->state_size(); ++i) {
-				key_state[i] = copy[table[i]];
+			for (qpl::size i = 0u; i < this->state_size; ++i) {
+				key_state[i] = sbox[copy[shuffle[i]]];
 			}
-
-			key_hash = key_state[0] % (this->table.mds.size());
-			const auto& mds = this->table.mds[key_hash];
 
 			std::array<qpl::u8, this->N> row;
 			for (qpl::size c = 0u; c < this->N; ++c) {
@@ -890,7 +926,7 @@ struct cipherN {
 						auto index = c * this->N + r;
 						auto mds_index = m * this->N + r;
 
-						byte ^= this->table.galois_mul[mds[mds_index]][key_state[index]];
+						byte ^= galois_mul[mds[mds_index]][key_state[index]];
 					}
 					row[m] = byte;
 				}
@@ -899,55 +935,54 @@ struct cipherN {
 				}
 			}
 
-			auto index = round * this->key_size;
-			for (qpl::size i = 0u; i < this->key_size; ++i) {
-				this->round_key[index + i] = key_state[i] ^ last_key_state[i];
+			for (qpl::size i = 0u; i < this->state_size; ++i) {
+				this->round_key[round_index + i] = key_state[i] ^ last_key_state[i];
 			}
 			last_key_state = key_state;
 		}
 	}
 
 	void set_input(const std::string_view& message) {
-		this->states = ((message.length() - 1) / this->state_size() + 1);
-		auto output_size = this->states * this->state_size();
+		this->states = ((message.length() - 1) / this->state_size + 1);
+		auto output_size = this->states * this->state_size;
 
-		this->input.resize(output_size);
+		this->input.clear();
+		this->input.resize(output_size, qpl::u8{ 0 });
 		std::memcpy(this->input.data(), message.data(), message.length());
 
-		this->output.resize(output_size);
+		this->output.clear();
+		this->output.resize(output_size, qpl::u8{ 0 });
 	}
 
-	std::string raw_encrypt(const std::string_view& message, const std::string_view& key) {
+	void set_key(const std::string_view& key) {
+		if (this->key == key) {
+			return;
+		}
 		this->table.create(key);
-		this->set_input(message);
 		this->create_round_key(key);
+		this->key = key;
+
+		qpl::print("round-key : ");
+		for (auto& i : this->round_key) {
+			qpl::print(qpl::hex_string(i, "", {}, true));
+		}
+		qpl::println();
+	}
+	std::string raw_encrypt(const std::string_view& message) {
+		this->set_input(message);
 		this->cipher();
 
-		auto output_size = this->states * this->state_size();
+		auto output_size = this->states * this->state_size;
 		std::string result;
 		result.resize(output_size);
 		std::memcpy(result.data(), this->output.data(), this->output.size());
 		return result;
 	}
-	std::string raw_decrypt(const std::string_view& message, const std::string_view& key) {
-		this->table.create(key);
+	std::string encrypt(const std::string_view& message) {
 		this->set_input(message);
-		this->create_round_key(key);
-		this->decipher();
-
-		auto output_size = this->states * this->state_size();
-		std::string result;
-		result.resize(output_size);
-		std::memcpy(result.data(), this->output.data(), output_size);
-		return result;
-	}
-	std::string encrypt(const std::string_view& message, const std::string_view& key) {
-		this->table.create(key);
-		this->set_input(message);
-		this->create_round_key(key);
 		this->cipher();
 
-		auto output_size = this->states * this->state_size();
+		auto output_size = this->states * this->state_size;
 		auto delta = output_size - message.length();
 		std::string result;
 		result.resize(output_size + 1);
@@ -955,21 +990,47 @@ struct cipherN {
 		result.back() = qpl::u8_cast(delta);
 		return result;
 	}
-	std::string decrypt(const std::string_view& message, const std::string_view& key) {
+	std::string encrypt(const std::string_view& message, const std::string_view& key) {
+		this->set_key(key);
+
+		return this->encrypt(message);
+	}
+	std::string raw_encrypt(const std::string_view& message, const std::string_view& key) {
+		this->set_key(key);
+		return this->raw_encrypt(message);
+	}
+
+	std::string decrypt(const std::string_view& message) {
 		auto delta = qpl::u8_cast(message.back());
 
-		this->table.create(key);
 		this->set_input(message.substr(0u, message.length() - 1));
-		this->create_round_key(key);
 		this->decipher();
 
-		auto output_size = this->states * this->state_size() - delta;
+		auto output_size = this->states * this->state_size - delta;
 		std::string result;
 		result.resize(output_size);
 		std::memcpy(result.data(), this->output.data(), output_size);
 		return result;
 	}
-	*/
+	std::string raw_decrypt(const std::string_view& message) {
+		this->set_input(message);
+		this->decipher();
+
+		auto output_size = this->states * this->state_size;
+		std::string result;
+		result.resize(output_size);
+		std::memcpy(result.data(), this->output.data(), output_size);
+		return result;
+	}
+	std::string decrypt(const std::string_view& message, const std::string_view& key) {
+		this->set_key(key);
+
+		return this->decrypt(message);
+	}
+	std::string raw_decrypt(const std::string_view& message, const std::string_view& key) {
+		this->set_key(key);
+		return this->raw_decrypt(message);
+	}
 };
 
 template<cipher_config config>

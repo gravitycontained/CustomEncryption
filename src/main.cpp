@@ -20,12 +20,12 @@ qpl::f64 get_bits_avalance(const std::string& a, const std::string& b) {
 }
 
 namespace crypto {
-	cipher512<2> e;
+	constexpr cipher_config config{ 10, 2, 2 };
+	cipherN<config> cipher;
 }
 
-
 std::string encrypted(const std::string& message, const std::string& key) {
-	return crypto::e.encrypt(message, key);
+	return crypto::cipher.encrypt(message, key);
 }
 std::string aes_encrypted(const std::string& message, const std::string& key) {
 	return qpl::encrypted_keep_size(message, key);
@@ -34,7 +34,6 @@ std::string aes_encrypted(const std::string& message, const std::string& key) {
 struct avalanche {
 	void update(std::string message, std::string key, bool use_aes) {
 		qpl::f64 sum_a = 0.0;
-		cipher512<2> e;
 
 		auto encrypt = use_aes ? aes_encrypted : encrypted;
 
@@ -100,7 +99,6 @@ struct avalanche {
 		qpl::println(use_aes ? "AES " : "MY  ", "msg[m] flipped   : ", qpl::percentage_string_precision(this->msg2_sum / this->ctr, 2));
 		qpl::println(use_aes ? "AES " : "MY  ", "msg[>] flipped   : ", qpl::percentage_string_precision(this->msg3_sum / this->ctr, 2));
 		qpl::println();
-
 	}
 
 	qpl::f64 encrypted_sum = 0.0;
@@ -123,15 +121,12 @@ void check_avalanche(const std::string& message, const std::string& key) {
 	aval::aes.update(message, key, true);
 }
 
+
 void check_encryption(std::string message, std::string key) {
-
-	cipher512<2> e;
-
 	qpl::begin_benchmark("MINE");
-	auto encrypted = e.encrypt(message, key);
-	auto decrypted = e.decrypt(encrypted, key);
+	auto encrypted = crypto::cipher.encrypt(message, key);
+	auto decrypted = crypto::cipher.decrypt(encrypted, key);
 	qpl::end_benchmark();
-
 
 	if (decrypted != message) {
 		qpl::println("message   : ", qpl::hex_string(message));
@@ -140,10 +135,10 @@ void check_encryption(std::string message, std::string key) {
 		qpl::println();
 	}
 
-	qpl::begin_benchmark("AES");
-	encrypted = qpl::encrypted_keep_size(message, key);
-	decrypted = qpl::decrypted_keep_size(encrypted, key);
-	qpl::end_benchmark();
+	//qpl::begin_benchmark("AES");
+	//encrypted = qpl::encrypted_keep_size(message, key);
+	//decrypted = qpl::decrypted_keep_size(encrypted, key);
+	//qpl::end_benchmark();
 }
 
 void check_mistakes() {
@@ -151,26 +146,28 @@ void check_mistakes() {
 
 	qpl::size bytes = 0u;
 
-	auto key = "21q1aN4TrJU5XOPF4YE532H10FD03I8F";
+	auto key = qpl::get_random_string_full_range(64);
+	for (qpl::size i = 10; i < key.length(); ++i) {
+		key[i] = 0u;
+	}
 
 	for (qpl::size i = 0u;; ++i) {
-		//auto l = qpl::random(2, 600);
-		//auto l = 128;
-		//auto l = 512;
-		auto l = 64 * 10'000;
-		auto message = qpl::get_random_string_full_range(l);
+		auto l = 64 * 10;
+		auto message = qpl::get_random_string_with_repetions(l, 64);
 
-
+		for (qpl::size i = 0; i < message.length(); ++i) {
+			message[i] = i < 10 ? message[0] : 0u;
+		}
 
 		check_encryption(message, key);
-		//check_avalanche(message, key);
+		check_avalanche(message, key);
 		bytes += message.length();
 
 		if (qpl::get_time_signal(0.5)) {
 			auto byte_rate = qpl::size_cast(qpl::f64_cast(bytes) / clock.elapsed_f());
 			qpl::println(qpl::memory_size_string(bytes), " (", qpl::memory_size_string(byte_rate), " / sec)");
-			//aval::mine.print(false);
-			//aval::aes.print(true);
+			aval::mine.print(false);
+			aval::aes.print(true);
 			qpl::print_benchmark();
 		}
 	}
@@ -287,75 +284,10 @@ void create_output() {
 	qpl::println(qpl::memory_size_string(qpl::size_cast(rate)), " / sec (", qpl::size_cast(rate), " bytes)");
 }
 
-void mds() {
-	auto print = [](std::vector<qpl::size> m) {
-		auto N = qpl::size_cast(std::sqrt(m.size()));
-		qpl::print("std::array<qpl::u8, ", N * N, ">{ ");
-		bool first = true;
-		for (qpl::size c = 0u; c < N; ++c) {
-			for (qpl::size r = 0u; r < N; ++r) {
-				if (!first) {
-					qpl::print(", ");
-				}
-				first = false;
-
-				auto row_value = qpl::u8_cast(m[c * N + r]);
-				qpl::print(qpl::size_cast(row_value));
-			}
-		}
-		qpl::println("},");
-	};
-
-	auto result = find_mds(4, 3, 11, {9, 11, 13, 14});
-	for (auto& i : result) {
-		for (auto& i : i) {
-			print(i);
-		}
-		qpl::println();
-	}
-
-	mat<qpl::u8> m = { {
-		{2, 3, 1, 1},
-		{1, 2, 3, 1},
-		{1, 1, 2, 3},
-		{3, 1, 1, 2},
-	} };
-	auto i = galois_matrix_inverse(m);
-}
-
 int main() try {
-	//test();
-
-	//find_valid_mds<50>();
-	//test(4);
-	constexpr auto config = cipher_config{};
-
-	cipherN<config> cc;
-
-	//cc.encrypt("hello", "123");
-	//cc.table.create("21q1aN4TrJU5XOPF4YE532H10FD03I8F");
-	cc.table.create("21q1aN4TrJU5XOPF4YE532H10FD03I8F");
-
-	for (auto& m : cc.table.mds) {
-
-		mat<qpl::u8> mat(config.N, std::vector<qpl::u8>(config.N));
-		for (qpl::size i = 0u; i < m.size(); ++i) {
-			mat[i / config.N][i % config.N] = m[i];
-		}
-		if (!test_mds(mat)) {
-			auto inv = galois_matrix_inverse(mat);
-			auto det = galois_matrix_determinant(mat);
-			print_matrix(mat);
-			qpl::println();
-			print_matrix(inv);
-			qpl::println();
-			test_mds<true>(mat);
-		}
-	}
-
 	//mds();
 	//create_output();
-	//check_mistakes();
+	check_mistakes();
 }
 catch (std::exception& any) {
 	qpl::println("caught exception:\n", any.what());
