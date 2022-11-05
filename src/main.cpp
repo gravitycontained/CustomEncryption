@@ -20,7 +20,7 @@ qpl::f64 get_bits_avalance(const std::string& a, const std::string& b) {
 }
 
 namespace crypto {
-	constexpr cipher_config config{ 10, 2, 2 };
+	constexpr cipher_config config{ 10, 2, 2, 16, 1 };
 	cipherN<config> cipher;
 }
 
@@ -152,11 +152,11 @@ void check_mistakes() {
 	}
 
 	for (qpl::size i = 0u;; ++i) {
-		auto l = 64 * 10;
+		auto l = 64 * 1;
 		auto message = qpl::get_random_string_with_repetions(l, 64);
 
 		for (qpl::size i = 0; i < message.length(); ++i) {
-			message[i] = i < 10 ? message[0] : 0u;
+			message[i] = i < 5 ? message[0] : 0u;
 		}
 
 		check_encryption(message, key);

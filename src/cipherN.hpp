@@ -7,8 +7,8 @@ struct cipher_config {
 	qpl::size cipher_rounds = 3u;
 	qpl::size seeding_rounds = 2u;
 	qpl::size key_size = N * N;
-	qpl::size sbox_size = 16u;
 	qpl::size mds_size = 16u;
+	qpl::size sbox_size = 16u;
 	qpl::size shuffle_size = 16u;
 };
 
@@ -449,7 +449,6 @@ struct lookup_table {
 	std::array<std::array<qpl::u8, config.N * config.N>, config.mds_size> mds_inverse;
 
 	std::array<std::array<qpl::u8, config.N * config.N>, config.shuffle_size> shuffle;
-	std::array<std::array<qpl::u8, config.N * config.N>, config.shuffle_size> shuffle_inverse;
 
 	void seed_state(const std::string_view& key, qpl::random_engine<64u>& engine) const {
 
@@ -465,41 +464,37 @@ struct lookup_table {
 		constexpr auto sbox1 = std::array<qpl::u8, 256> { 0x62u, 0x57u, 0x93u, 0x47u, 0x08u, 0x44u, 0x41u, 0x61u, 0x78u, 0x10u, 0xb0u, 0x18u, 0xa4u, 0x54u, 0xa0u, 0x12u, 0x55u, 0xdcu, 0x6cu, 0xb6u, 0xd8u, 0xc6u, 0x21u, 0x30u, 0xeeu, 0xfau, 0xabu, 0xaeu, 0xd5u, 0x53u, 0x06u, 0x79u, 0x8bu, 0x59u, 0xbfu, 0xe6u, 0x46u, 0x0du, 0xccu, 0x74u, 0x22u, 0x43u, 0x56u, 0xddu, 0x83u, 0xd2u, 0x42u, 0x35u, 0x37u, 0xfcu, 0x20u, 0xc0u, 0xb9u, 0xc1u, 0x5cu, 0x2du, 0x8eu, 0x60u, 0xbbu, 0x32u, 0xb3u, 0x81u, 0xdfu, 0x8du, 0xb4u, 0xecu, 0xd3u, 0x1cu, 0x36u, 0x9au, 0xe1u, 0x86u, 0x15u, 0xe7u, 0xe9u, 0xefu, 0x72u, 0x1au, 0x38u, 0x11u, 0xcfu, 0x00u, 0x17u, 0x90u, 0x96u, 0x8cu, 0xa7u, 0x4du, 0x3cu, 0x05u, 0x40u, 0x50u, 0x5du, 0xb7u, 0x85u, 0xaau, 0x28u, 0x9eu, 0x75u, 0xebu, 0x91u, 0x5eu, 0x24u, 0xf2u, 0xc2u, 0x2cu, 0x13u, 0x25u, 0x0fu, 0xc7u, 0x73u, 0xf9u, 0x16u, 0x65u, 0x82u, 0xb2u, 0xfbu, 0x70u, 0x2fu, 0xbcu, 0x5fu, 0x9du, 0x89u, 0xa3u, 0x68u, 0x92u, 0x09u, 0xdbu, 0x97u, 0xb8u, 0x3fu, 0x27u, 0xcau, 0x88u, 0xa1u, 0xfdu, 0x45u, 0x66u, 0xeau, 0x39u, 0xe5u, 0xdau, 0x7au, 0x51u, 0x34u, 0xf0u, 0x7du, 0x1bu, 0x6eu, 0x0au, 0xadu, 0x76u, 0x9cu, 0xe0u, 0x94u, 0x0eu, 0xf7u, 0x07u, 0xe8u, 0xa8u, 0x4eu, 0xf8u, 0x26u, 0xdeu, 0xe2u, 0xc4u, 0x03u, 0xc5u, 0x02u, 0x3bu, 0x01u, 0x48u, 0xf6u, 0x14u, 0x3du, 0xfeu, 0xa6u, 0x49u, 0x52u, 0x77u, 0x4cu, 0xacu, 0xafu, 0xceu, 0x31u, 0x95u, 0xb5u, 0xd1u, 0x87u, 0x04u, 0xf1u, 0x4bu, 0xd4u, 0x63u, 0x7fu, 0xcbu, 0x64u, 0xbdu, 0x1du, 0x29u, 0x7eu, 0xf5u, 0xd0u, 0xe4u, 0xd6u, 0xe3u, 0xf3u, 0x9bu, 0xc8u, 0x6du, 0xc9u, 0xbeu, 0x5au, 0x67u, 0x2au, 0xedu, 0x2bu, 0x84u, 0xffu, 0xd9u, 0x7cu, 0x7bu, 0x58u, 0x98u, 0x71u, 0x3eu, 0x19u, 0x9fu, 0x3au, 0x6bu, 0x4fu, 0xb1u, 0xf4u, 0x5bu, 0xcdu, 0xd7u, 0x0bu, 0x33u, 0x6fu, 0x8au, 0x1eu, 0xc3u, 0x0cu, 0xbau, 0xa5u, 0x80u, 0xa9u, 0x2eu, 0x69u, 0x4au, 0x6au, 0x99u, 0x23u, 0xa2u, 0x1fu, 0x8fu };
 		constexpr auto sbox2 = std::array<qpl::u8, 256> { 0x89u, 0x00u, 0x78u, 0xdeu, 0x41u, 0x3au, 0xf7u, 0xbau, 0x7eu, 0xe5u, 0xf4u, 0xa5u, 0xcbu, 0xdfu, 0x66u, 0xeeu, 0x18u, 0xa3u, 0x61u, 0xd7u, 0x50u, 0x40u, 0xc5u, 0x02u, 0x44u, 0x93u, 0xb1u, 0xefu, 0xc9u, 0x7cu, 0x4du, 0x88u, 0x1bu, 0x92u, 0x17u, 0x9fu, 0x82u, 0x4au, 0xc4u, 0xa9u, 0x11u, 0x1fu, 0x39u, 0x99u, 0x2du, 0xb3u, 0x91u, 0x3fu, 0x83u, 0x0du, 0xfcu, 0x8du, 0x95u, 0xf6u, 0x6cu, 0x28u, 0xedu, 0x9cu, 0x1eu, 0x75u, 0x21u, 0x8fu, 0xf2u, 0x8eu, 0xeau, 0xf0u, 0xe8u, 0x60u, 0x15u, 0x03u, 0x71u, 0x3cu, 0x12u, 0x25u, 0x06u, 0x0au, 0x43u, 0xe0u, 0x54u, 0x3eu, 0x56u, 0x16u, 0xa1u, 0x6bu, 0xccu, 0xacu, 0x9eu, 0xb5u, 0xc1u, 0xc7u, 0x84u, 0x34u, 0x1du, 0xb8u, 0xebu, 0x62u, 0x2fu, 0xddu, 0x7fu, 0x72u, 0x69u, 0xfeu, 0x5au, 0x80u, 0xfbu, 0x0fu, 0xd0u, 0x20u, 0xa6u, 0xabu, 0x33u, 0x6au, 0xfdu, 0x27u, 0xe1u, 0x1au, 0x05u, 0x9du, 0x97u, 0x09u, 0x47u, 0x8au, 0x87u, 0xaau, 0xc0u, 0x36u, 0x96u, 0xaeu, 0xa7u, 0x7bu, 0x1cu, 0xbfu, 0x29u, 0x5fu, 0x73u, 0xb7u, 0xecu, 0x8bu, 0x6eu, 0x13u, 0x9bu, 0xcfu, 0x68u, 0x9au, 0x7du, 0x08u, 0x77u, 0xa8u, 0x23u, 0x90u, 0xe3u, 0x10u, 0xceu, 0xdau, 0x6fu, 0xbcu, 0xd4u, 0x53u, 0xf3u, 0xbbu, 0x32u, 0x98u, 0x46u, 0x2eu, 0x07u, 0xb4u, 0x5bu, 0xbdu, 0x55u, 0x2au, 0x59u, 0xd8u, 0x45u, 0xf5u, 0xb2u, 0x74u, 0xe7u, 0x63u, 0x42u, 0x70u, 0xadu, 0xe2u, 0x64u, 0x35u, 0x48u, 0xe6u, 0xe4u, 0x24u, 0x6du, 0x76u, 0xa4u, 0xd6u, 0x8cu, 0xb6u, 0xf8u, 0xd5u, 0x26u, 0x0cu, 0x65u, 0x3du, 0x22u, 0xc8u, 0x67u, 0x57u, 0x5du, 0xa2u, 0x30u, 0x4fu, 0x0bu, 0x85u, 0xfau, 0x79u, 0x5cu, 0xafu, 0x04u, 0x01u, 0xdbu, 0xdcu, 0xd9u, 0x4bu, 0xbeu, 0xd1u, 0xcau, 0x2cu, 0x49u, 0x2bu, 0x38u, 0x58u, 0x86u, 0x4eu, 0xc3u, 0xb0u, 0x37u, 0xd2u, 0xcdu, 0x19u, 0x52u, 0x5eu, 0x14u, 0x0eu, 0xd3u, 0x7au, 0x4cu, 0x3bu, 0xf1u, 0x81u, 0xe9u, 0xa0u, 0xf9u, 0x51u, 0xc2u, 0xb9u, 0x31u, 0xffu, 0x94u, 0xc6u };
 
-		std::array<qpl::u8, size> row;
-		std::array<qpl::u8, size> col;
 
 		for (qpl::size round = 0u; round < config.seeding_rounds; ++round) {
-			for (qpl::size r = 0u; r < size; ++r) {
-				for (qpl::size m = 0u; m < size; ++m) {
-					qpl::u8 byte = 0;
-					for (qpl::size c = 0u; c < size; ++c) {
-						auto index = c * size + r;
-						auto mds_index = ((c * size + m) + r) % size;
-
-						byte ^= galois_mul[mds1[mds_index]][sbox1[state[index]]];
-					}
-					col[m] = byte;
-				}
-				for (qpl::size i = 0u; i < size; ++i) {
-					auto index = i * size + r;
-					state[index] = col[i];
-				}
-			}
-
 			for (qpl::size c = 0u; c < size; ++c) {
-				for (qpl::size m = 0u; m < size; ++m) {
-					qpl::u8 byte = 0;
-					for (qpl::size r = 0u; r < size; ++r) {
-						auto index = c * size + r;
-						auto mds_index = ((c * size + m) + r) % size;
+				std::array<qpl::u8, size> row{};
+				for (qpl::size my = 0u; my < size; ++my) {
+					for (qpl::size mx = 0u; mx < size; ++mx) {
+						auto index = c * size + mx;
+						auto mds_index = ((size - my - 1) + mx) % size;
 
-						byte ^= galois_mul[mds2[mds_index]][sbox2[state[index]]];
+						row[my] ^= galois_mul[mds1[mds_index]][sbox1[state[index]]];
 					}
-					row[m] = byte;
 				}
 				for (qpl::size i = 0u; i < size; ++i) {
 					auto index = c * size + i;
 					state[index] = row[i];
+				}
+			}
+
+			for (qpl::size c = 0u; c < size; ++c) {
+				std::array<qpl::u8, size> col{};
+				for (qpl::size my = 0u; my < size; ++my) {
+					for (qpl::size mx = 0u; mx < size; ++mx) {
+						auto index = mx * size + c;
+						auto mds_index = ((size - my - 1) + mx) % size;
+
+						col[my] ^= galois_mul[mds2[mds_index]][sbox2[state[index]]];
+					}
+				}
+				for (qpl::size i = 0u; i < size; ++i) {
+					auto index = i * size + c;
+					state[index] = col[i];
 				}
 			}
 		}
@@ -545,7 +540,6 @@ struct lookup_table {
 				bool found = true;
 				std::shuffle(this->shuffle[s].begin(), this->shuffle[s].end(), engine.engine);
 				for (qpl::size i = 0u; i < shuffle_bytes.size(); ++i) {
-					this->shuffle_inverse[s][this->shuffle[s][i]] = qpl::u8_cast(i);
 					if (this->shuffle[s][i] == i) {
 						found = false;
 						break;
@@ -558,7 +552,6 @@ struct lookup_table {
 		}
 	}
 	void generate_mds(qpl::random_engine<64u>& engine) {
-
 		for (qpl::size s = 0u; s < this->mds.size(); ++s) {
 			while (true) {
 				for (qpl::size i = 0u; i < config.N; ++i) {
@@ -566,7 +559,7 @@ struct lookup_table {
 				}
 				for (qpl::size c = 1u; c < config.N; ++c) {
 					for (qpl::size r = 0u; r < config.N; ++r) {
-						this->mds[s][c * config.N + r] = this->mds[s][(r + c) % config.N];
+						this->mds[s][c * config.N + r] = this->mds[s][((config.N - c) + r) % config.N];
 					}
 				}
 
@@ -644,7 +637,30 @@ public:
 		}
 	}
 
-	void sub_shuffle_mix_rows(qpl::size round) {
+	void add_roundkey_mix_rows(qpl::size round) {
+		auto key_index = round * this->key_size;
+		auto mds_index = (this->round_key[key_index] ^ this->state_byte) % this->mds_size;
+		const auto& mds = this->table.mds[mds_index];
+
+		for (qpl::size c = 0u; c < this->N; ++c) {
+			std::array<qpl::u8, this->N> row{};
+			for (qpl::size my = 0u; my < this->N; ++my) {
+				for (qpl::size mx = 0u; mx < this->N; ++mx) {
+					auto index = c * this->N + mx;
+					auto mds_index = my * this->N + mx;
+
+					auto value = this->state[index] ^ this->round_key[round * this->key_size + index];
+					//auto value = this->state[index];
+					row[my] ^= galois_mul[mds[mds_index]][value];
+				}
+			}
+			for (qpl::size i = 0u; i < this->N; ++i) {
+				auto index = c * this->N + i;
+				this->state[index] = row[i];
+			}
+		}
+	}
+	void sub_shuffle_mix_columns(qpl::size round) {
 		auto key_index = round * this->key_size;
 		auto mds_index      = (this->round_key[key_index] ^ this->state_byte) % this->mds_size;
 		auto sbox_index     = (this->round_key[key_index] ^ this->state_byte) % this->sbox_size;
@@ -654,124 +670,78 @@ public:
 		const auto& shuffle = this->table.shuffle[shuffle_index];
 
 		auto copy = this->state;
-		std::array<qpl::u8, this->N> col;
-		for (qpl::size r = 0u; r < this->N; ++r) {
-			for (qpl::size m = 0u; m < this->N; ++m) {
-				qpl::u8 byte = 0;
-				for (qpl::size c = 0u; c < this->N; ++c) {
-					auto index = c * this->N + r;
-					auto mds_index = c * this->N + m;
+		for (qpl::size c = 0u; c < this->N; ++c) {
+			std::array<qpl::u8, this->N> col{};
+			for (qpl::size my = 0u; my < this->N; ++my) {
+				for (qpl::size mx = 0u; mx < this->N; ++mx) {
+					auto index = mx * this->N + c;
+					auto mds_index = my * this->N + mx;
 
-					//auto value = sbox[copy[shuffle[index]]];
-					auto value = copy[index];
-					byte ^= galois_mul[mds[mds_index]][value];
+					auto value = sbox[copy[shuffle[index]]];
+
+					//auto value = sbox[copy[index]];
+					
+					//auto value = copy[index];
+					col[my] ^= galois_mul[mds[mds_index]][value];
 				}
-				col[m] = byte;
-
-				qpl::println("col [", c, "][", r, "] = ", qpl::hex_string(byte, "", {}, true));
 			}
 			for (qpl::size i = 0u; i < this->N; ++i) {
-				auto index = i * this->N + r;
+				auto index = i * this->N + c;
 				this->state[index] = col[i];
 			}
 		}
 	}
-	void mix_columns_add_roundkey(qpl::size round) {
-		auto key_index = round * this->key_size;
-		auto mds_index = (this->round_key[key_index] ^ this->state_byte) % this->mds_size;
-		const auto& mds = this->table.mds[mds_index];
-
-		/*
-		
-		for (qpl::u32 columns = 0u; columns < 4u; ++columns) {
-
-			auto index0 = columns * 4 + 0;
-			auto index1 = columns * 4 + 1;
-			auto index2 = columns * 4 + 2;
-			auto index3 = columns * 4 + 3;
-
-			std::array<qpl::u8, 4u> temp;
-			temp[0] = qpl::detail::aes_tables::mul2[this->m_state[index0]] ^ qpl::detail::aes_tables::mul3[this->m_state[index1]] ^ qpl::detail::aes_tables::mul1[this->m_state[index2]] ^ qpl::detail::aes_tables::mul1[this->m_state[index3]];
-			temp[1] = qpl::detail::aes_tables::mul1[this->m_state[index0]] ^ qpl::detail::aes_tables::mul2[this->m_state[index1]] ^ qpl::detail::aes_tables::mul3[this->m_state[index2]] ^ qpl::detail::aes_tables::mul1[this->m_state[index3]];
-			temp[2] = qpl::detail::aes_tables::mul1[this->m_state[index0]] ^ qpl::detail::aes_tables::mul1[this->m_state[index1]] ^ qpl::detail::aes_tables::mul2[this->m_state[index2]] ^ qpl::detail::aes_tables::mul3[this->m_state[index3]];
-			temp[3] = qpl::detail::aes_tables::mul3[this->m_state[index0]] ^ qpl::detail::aes_tables::mul1[this->m_state[index1]] ^ qpl::detail::aes_tables::mul1[this->m_state[index2]] ^ qpl::detail::aes_tables::mul2[this->m_state[index3]];
-
-			for (qpl::u32 i = 0; i < 4; ++i) {
-				this->m_state[columns * 4 + i] = temp[i];
-			}
-		}
-		*/
-
-		std::array<qpl::u8, this->N> row;
-		for (qpl::size c = 0u; c < this->N; ++c) {
-			for (qpl::size m = 0u; m < this->N; ++m) {
-				qpl::u8 byte = 0;
-				for (qpl::size r = 0u; r < this->N; ++r) {
-					auto index = c * this->N + r;
-					auto mds_index = m * this->N + r;
-
-					byte ^= galois_mul[mds[mds_index]][this->state[index]];
-				}
-				row[m] = byte;
-				qpl::println("row [", c, "][", r, "] = ", qpl::hex_string(byte, "", {}, true));
-			}
-			for (qpl::size i = 0u; i < this->N; ++i) {
-				auto index = c * this->N + i;
-				//this->state[index] = row[i] ^ this->round_key[round * this->key_size + index];
-				this->state[index] = row[i];
-			}
-		}
-	}
-	void add_roundkey_unmix_columns(qpl::size round) {
-		auto key_index = round * this->key_size;
-		auto mds_index = (this->round_key[key_index] ^ this->state_byte) % this->mds_size;
-		const auto& mds = this->table.mds_inverse[mds_index];
-
-		auto copy = this->state;
-		std::array<qpl::u8, this->N> row;
-		for (qpl::size c = 0u; c < this->N; ++c) {
-			for (qpl::size m = 0u; m < this->N; ++m) {
-				qpl::u8 byte = 0;
-				for (qpl::size r = 0u; r < this->N; ++r) {
-					auto index = c * this->N + r;
-					auto mds_index = m * this->N + r;
-
-					auto value = copy[index];
-					byte ^= galois_mul[mds[mds_index]][value ^ this->round_key[round * this->key_size + index]];
-				}
-				row[m] = byte;
-			}
-			for (qpl::size i = 0u; i < this->N; ++i) {
-				this->state[c * this->N + i] = row[i];
-			}
-		}
-	}
-	void unmix_rows_sub_shuffle(qpl::size round) {
+	
+	void unmix_columns_sub_shuffle(qpl::size round) {
 		auto key_index = round * this->key_size;
 		auto mds_index      = (this->round_key[key_index] ^ this->state_byte) % this->mds_size;
 		auto sbox_index     = (this->round_key[key_index] ^ this->state_byte) % this->sbox_size;
 		auto shuffle_index  = (this->round_key[key_index] ^ this->state_byte) % this->shuffle_size;
 		const auto& mds     = this->table.mds_inverse[mds_index];
 		const auto& sbox    = this->table.sbox_inverse[sbox_index];
-		const auto& shuffle = this->table.shuffle_inverse[shuffle_index];
+		const auto& shuffle = this->table.shuffle[shuffle_index];
 
 		auto copy = this->state;
-		std::array<qpl::u8, this->N> col;
-		for (qpl::size r = 0u; r < this->N; ++r) {
-			for (qpl::size m = 0u; m < this->N; ++m) {
-				qpl::u8 byte = 0;
-				for (qpl::size c = 0u; c < this->N; ++c) {
-					auto index = c * this->N + r;
-					auto mds_index = c * this->N + m;
+		for (qpl::size c = 0u; c < this->N; ++c) {
+			std::array<qpl::u8, this->N> col{};
+			for (qpl::size my = 0u; my < this->N; ++my) {
+				for (qpl::size mx = 0u; mx < this->N; ++mx) {
+					auto index = mx * this->N + c;
+					auto mds_index = my * this->N + mx;
 
-					byte ^= galois_mul[mds[mds_index]][copy[index]];
+					auto value = copy[index];
+					col[my] ^= galois_mul[mds[mds_index]][value];
 				}
-				col[m] = byte;
 			}
 			for (qpl::size i = 0u; i < this->N; ++i) {
-				auto index = i * this->N + r;
-				//this->state[shuffle[index]] = sbox[col[i]];
-				this->state[index] = col[i];
+				auto index = i * this->N + c;
+				this->state[shuffle[index]] = sbox[col[i]];
+
+				//this->state[index] = sbox[col[i]];
+				//this->state[index] = col[i];
+			}
+		}
+	}
+	void unmix_rows_add_roundkey(qpl::size round) {
+		auto key_index = round * this->key_size;
+		auto mds_index = (this->round_key[key_index] ^ this->state_byte) % this->mds_size;
+		const auto& mds = this->table.mds_inverse[mds_index];
+
+		for (qpl::size c = 0u; c < this->N; ++c) {
+			std::array<qpl::u8, this->N> row{};
+			for (qpl::size my = 0u; my < this->N; ++my) {
+				for (qpl::size mx = 0u; mx < this->N; ++mx) {
+					auto index = c * this->N + mx;
+					auto mds_index = my * this->N + mx;
+
+					auto value = this->state[index];
+					row[my] ^= galois_mul[mds[mds_index]][value];
+				}
+			}
+			for (qpl::size i = 0u; i < this->N; ++i) {
+				auto index = c * this->N + i;
+				this->state[index] = row[i] ^ this->round_key[round * this->key_size + index];
+				//this->state[index] = row[i];
 			}
 		}
 	}
@@ -787,25 +757,25 @@ public:
 	void cipher_rotation() {
 		for (qpl::size round = 0u; round < this->cipher_rounds; ++round) {
 			if (!round) {
-				qpl::println("state : ");
-				this->print_state();
+				//qpl::println("state : ");
+				//this->print_state();
 			}
 
-			this->sub_shuffle_mix_rows(round);
+			this->add_roundkey_mix_rows(round);
 
-			qpl::println("rows : ");
-			this->print_state();
+			//qpl::println("rows : ");
+			//this->print_state();
 
-			this->mix_columns_add_roundkey(round);
+			this->sub_shuffle_mix_columns(round);
 
-			qpl::println("cols : ");
-			this->print_state();
+			//qpl::println("cols : ");
+			//this->print_state();
 		}
 	}
 	void decipher_rotation() {
 		for (qpl::isize round = this->cipher_rounds - 1; round >= 0; --round) {
-			this->add_roundkey_unmix_columns(qpl::size_cast(round));
-			this->unmix_rows_sub_shuffle(qpl::size_cast(round));
+			this->unmix_columns_sub_shuffle(qpl::size_cast(round));
+			this->unmix_rows_add_roundkey(qpl::size_cast(round));
 		}
 	}
 
@@ -813,8 +783,8 @@ public:
 		for (qpl::isize i = this->states - 2; i >= 0; --i) {
 			this->state_ctr = qpl::size_cast(i);
 
-			this->sub_shuffle_mix_rows(i % this->cipher_rounds);
-			this->mix_columns_add_roundkey(i % this->cipher_rounds);
+			this->add_roundkey_mix_rows(i % this->cipher_rounds);
+			this->sub_shuffle_mix_columns(i % this->cipher_rounds);
 
 			auto index = this->state_ctr * this->state_size;
 			for (qpl::size i = 0u; i < this->state_size; ++i) {
@@ -831,8 +801,8 @@ public:
 		for (qpl::isize i = this->states - 2; i >= 0; --i) {
 			this->state_ctr = qpl::size_cast(i);
 
-			this->sub_shuffle_mix_rows(i % this->cipher_rounds);
-			this->mix_columns_add_roundkey(i % this->cipher_rounds);
+			this->add_roundkey_mix_rows(i % this->cipher_rounds);
+			this->sub_shuffle_mix_columns(i % this->cipher_rounds);
 
 			auto index = this->state_ctr * this->state_size;
 			for (qpl::size i = 0u; i < this->state_size; ++i) {
@@ -860,14 +830,12 @@ public:
 
 			this->cipher_rotation();
 			this->output_cipher_state();
-
-			qpl::println("state[", this->state_ctr, "]");
 		}
 
-		this->add_reverse_state_rotation();
+		//this->add_reverse_state_rotation();
 	}
 	void decipher() {
-		this->sub_reverse_state_rotation();
+		//this->sub_reverse_state_rotation();
 
 		this->state.fill(0u);
 		this->last_state[0] = 0u;
@@ -917,24 +885,40 @@ public:
 			for (qpl::size i = 0u; i < this->state_size; ++i) {
 				key_state[i] = sbox[copy[shuffle[i]]];
 			}
-
-			std::array<qpl::u8, this->N> row;
+			//mix rows
 			for (qpl::size c = 0u; c < this->N; ++c) {
-				for (qpl::size m = 0u; m < this->N; ++m) {
-					qpl::u8 byte = 0;
-					for (qpl::size r = 0u; r < this->N; ++r) {
-						auto index = c * this->N + r;
-						auto mds_index = m * this->N + r;
+				std::array<qpl::u8, this->N> row{};
+				for (qpl::size my = 0u; my < this->N; ++my) {
+					for (qpl::size mx = 0u; mx < this->N; ++mx) {
+						auto index = c * this->N + mx;
+						auto mds_index = my * this->N + mx;
 
-						byte ^= galois_mul[mds[mds_index]][key_state[index]];
+						auto value = sbox[key_state[index]];
+						row[my] ^= galois_mul[mds[mds_index]][value];
 					}
-					row[m] = byte;
 				}
 				for (qpl::size i = 0u; i < this->N; ++i) {
-					key_state[c * this->N + i] = row[i];
+					auto index = c * this->N + i;
+					key_state[index] = row[i];
 				}
 			}
+			//mix columns
+			for (qpl::size c = 0u; c < this->N; ++c) {
+				std::array<qpl::u8, this->N> col{};
+				for (qpl::size my = 0u; my < this->N; ++my) {
+					for (qpl::size mx = 0u; mx < this->N; ++mx) {
+						auto index = mx * this->N + c;
+						auto mds_index = my * this->N + mx;
 
+						auto value = sbox[key_state[index]];
+						col[my] ^= galois_mul[mds[mds_index]][key_state[index]];
+					}
+				}
+				for (qpl::size i = 0u; i < this->N; ++i) {
+					auto index = i * this->N + c;
+					key_state[index] = col[i];
+				}
+			}
 			for (qpl::size i = 0u; i < this->state_size; ++i) {
 				this->round_key[round_index + i] = key_state[i] ^ last_key_state[i];
 			}
@@ -962,11 +946,11 @@ public:
 		this->create_round_key(key);
 		this->key = key;
 
-		qpl::print("round-key : ");
-		for (auto& i : this->round_key) {
-			qpl::print(qpl::hex_string(i, "", {}, true));
-		}
-		qpl::println();
+		//qpl::print("round-key : ");
+		//for (auto& i : this->round_key) {
+		//	qpl::print(qpl::hex_string(i, "", {}, true));
+		//}
+		//qpl::println();
 	}
 	std::string raw_encrypt(const std::string_view& message) {
 		this->set_input(message);
