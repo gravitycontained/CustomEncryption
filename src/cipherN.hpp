@@ -650,7 +650,6 @@ public:
 					auto mds_index = my * this->N + mx;
 
 					auto value = this->state[index] ^ this->round_key[round * this->key_size + index];
-					//auto value = this->state[index];
 					row[my] ^= galois_mul[mds[mds_index]][value];
 				}
 			}
@@ -678,10 +677,6 @@ public:
 					auto mds_index = my * this->N + mx;
 
 					auto value = sbox[copy[shuffle[index]]];
-
-					//auto value = sbox[copy[index]];
-					
-					//auto value = copy[index];
 					col[my] ^= galois_mul[mds[mds_index]][value];
 				}
 			}
@@ -716,9 +711,6 @@ public:
 			for (qpl::size i = 0u; i < this->N; ++i) {
 				auto index = i * this->N + c;
 				this->state[shuffle[index]] = sbox[col[i]];
-
-				//this->state[index] = sbox[col[i]];
-				//this->state[index] = col[i];
 			}
 		}
 	}
@@ -741,7 +733,6 @@ public:
 			for (qpl::size i = 0u; i < this->N; ++i) {
 				auto index = c * this->N + i;
 				this->state[index] = row[i] ^ this->round_key[round * this->key_size + index];
-				//this->state[index] = row[i];
 			}
 		}
 	}
@@ -756,20 +747,8 @@ public:
 
 	void cipher_rotation() {
 		for (qpl::size round = 0u; round < this->cipher_rounds; ++round) {
-			if (!round) {
-				//qpl::println("state : ");
-				//this->print_state();
-			}
-
 			this->add_roundkey_mix_rows(round);
-
-			//qpl::println("rows : ");
-			//this->print_state();
-
 			this->sub_shuffle_mix_columns(round);
-
-			//qpl::println("cols : ");
-			//this->print_state();
 		}
 	}
 	void decipher_rotation() {
@@ -832,10 +811,10 @@ public:
 			this->output_cipher_state();
 		}
 
-		//this->add_reverse_state_rotation();
+		this->add_reverse_state_rotation();
 	}
 	void decipher() {
-		//this->sub_reverse_state_rotation();
+		this->sub_reverse_state_rotation();
 
 		this->state.fill(0u);
 		this->last_state[0] = 0u;
