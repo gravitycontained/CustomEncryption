@@ -1,7 +1,4 @@
 #include <qpl/qpl.hpp>
-#include "galois.hpp"
-#include "cipher512.hpp"
-#include "cipherN.hpp"
 
 qpl::size get_flipped_bits(const std::string& a, const std::string& b) {
 	qpl::size result = 0u;
@@ -20,8 +17,22 @@ qpl::f64 get_bits_avalance(const std::string& a, const std::string& b) {
 }
 
 namespace crypto {
-	constexpr cipher_config config{ 10, 2, 2, 16, 1 };
-	cipherN<config> cipher;
+	constexpr qpl::cipher_config config{
+		.N = 4,
+		.cipher_rounds = 1,
+		.key_size = 64,
+		.table_size = 64,
+	};
+	qpl::cipherN<config> cipher;
+}
+namespace crypto2 {
+	constexpr qpl::cipher_config config{
+		.N = 4,
+		.cipher_rounds = 1,
+		.key_size = 64,
+		.table_size = 64,
+	};
+	qpl::cipherN<config> cipher;
 }
 
 std::string encrypted(const std::string& message, const std::string& key) {
@@ -89,7 +100,6 @@ struct avalanche {
 		++this->ctr;
 	}
 
-
 	void print(bool use_aes) {
 		qpl::println(use_aes ? "AES " : "MY  ", "msg vs encrypted : ", qpl::percentage_string_precision(this->encrypted_sum / this->ctr, 2));
 		qpl::println(use_aes ? "AES " : "MY  ", "key[<] flipped   : ", qpl::percentage_string_precision(this->key1_sum / this->ctr, 2));
@@ -113,19 +123,20 @@ struct avalanche {
 
 namespace aval {
 	avalanche mine;
-	avalanche aes;
+	//avalanche aes;
 }
 
 void check_avalanche(const std::string& message, const std::string& key) {
 	aval::mine.update(message, key, false);
-	aval::aes.update(message, key, true);
+	//aval::aes.update(message, key, true);
 }
 
 
 void check_encryption(std::string message, std::string key) {
-	qpl::begin_benchmark("MINE");
+	qpl::begin_benchmark("encrypt");
 	auto encrypted = crypto::cipher.encrypt(message, key);
-	auto decrypted = crypto::cipher.decrypt(encrypted, key);
+	qpl::begin_benchmark_end_previous("decrypt");
+	auto decrypted = crypto2::cipher.decrypt(encrypted, key);
 	qpl::end_benchmark();
 
 	if (decrypted != message) {
@@ -146,28 +157,23 @@ void check_mistakes() {
 
 	qpl::size bytes = 0u;
 
-	auto key = qpl::get_random_string_full_range(64);
-	for (qpl::size i = 10; i < key.length(); ++i) {
-		key[i] = 0u;
-	}
+	auto key = qpl::get_random_string_full_range(crypto::cipher.key_size);
+	//for (qpl::size i = 10; i < key.length(); ++i) {
+	//	key[i] = 0u;
+	//}
 
 	for (qpl::size i = 0u;; ++i) {
-		auto l = 64 * 1;
+		auto l = 64 * 2;
 		auto message = qpl::get_random_string_with_repetions(l, 64);
 
-		for (qpl::size i = 0; i < message.length(); ++i) {
-			message[i] = i < 5 ? message[0] : 0u;
-		}
-
 		check_encryption(message, key);
-		check_avalanche(message, key);
+		//check_avalanche(message, key);
 		bytes += message.length();
 
 		if (qpl::get_time_signal(0.5)) {
 			auto byte_rate = qpl::size_cast(qpl::f64_cast(bytes) / clock.elapsed_f());
 			qpl::println(qpl::memory_size_string(bytes), " (", qpl::memory_size_string(byte_rate), " / sec)");
-			aval::mine.print(false);
-			aval::aes.print(true);
+			//aval::mine.print(false);
 			qpl::print_benchmark();
 		}
 	}
@@ -243,42 +249,17 @@ void make_tables() {
 	qpl::println(inv_string);
 }
 
-void round_key() {
-	cipher512<2> e;
-	e.encrypt("hello", "122");
-
-	std::string rk;
-	rk.resize(cipher512<2>::key_size);
-	std::memcpy(rk.data(), e.round_key.data(), cipher512<2>::key_size);
-	qpl::println("ROUND_KEY = ", qpl::hex_string(rk));
-
-}
 
 void create_output() {
+	//auto key = "21q1aN4TrJU5XOPF4YE532H10FD03I8F";
+	auto key = qpl::get_random_string_full_range(64);
+	constexpr auto l = qpl::gebibyte(1);
 
-	auto key = "21q1aN4TrJU5XOPF4YE532H10FD03I8F";
-	//auto l = 1000'000 / 8;
-	//auto l = qpl::megabyte(1);
-	//constexpr auto l = qpl::megabyte(1) / 8.0;
-	constexpr auto l = qpl::megabyte(50);
-
-	auto message = qpl::get_random_string_full_range_with_repetions(l, 1000);
-	//auto message = qpl::get_random_string_full_range(l);
-
-	//cipher512<2> e;
+	auto message = qpl::get_random_string_full_range_with_repetions(l, 10000);
 
 	qpl::small_clock clock;
-	//auto encrypted = e.raw_encrypt(message, key);
-	auto encrypted = qpl::encrypt(message, key);
+	auto encrypted = ::encrypted(message, key);
 	auto rate = encrypted.length() / clock.elapsed_f();
-
-	//message = qpl::binary_string(encrypted);
-	//qpl::write_text_file(message, "binary.txt");
-
-	//message = qpl::hex_string(encrypted);
-	//for (qpl::size i = 0u; i < message.length(); ++i) {
-	//	qpl::print(message[i]);
-	//}
 
 	qpl::write_data_file(encrypted, "binary.dat");
 	qpl::println(qpl::memory_size_string(qpl::size_cast(rate)), " / sec (", qpl::size_cast(rate), " bytes)");
