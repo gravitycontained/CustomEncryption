@@ -22,6 +22,7 @@ namespace crypto {
 		.cipher_rounds = 1,
 		.key_size = 64,
 		.table_size = 64,
+		.bidirectional = false,
 	};
 	qpl::cipherN<config> cipher;
 }
@@ -31,6 +32,7 @@ namespace crypto2 {
 		.cipher_rounds = 1,
 		.key_size = 64,
 		.table_size = 64,
+		.bidirectional = false,
 	};
 	qpl::cipherN<config> cipher;
 }
