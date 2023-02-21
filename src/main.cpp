@@ -353,7 +353,6 @@ struct RSA {
     }
 
     void randomize() {
-
         this->prime1 = this->random_prime();
 
         this->prime2 = this->prime1;
@@ -376,7 +375,6 @@ struct RSA {
 
     void create_keys() {
         this->mod = this->prime1 * this->prime2;
-
         for (this->coprime = 3u; this->coprime < this->lambda; ++this->coprime) {
             if (gcd(this->coprime, this->lambda) == 1) {
 
