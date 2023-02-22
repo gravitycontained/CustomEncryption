@@ -1,7 +1,5 @@
 #include <qpl/qpl.hpp>
 
-
-
 namespace crypto {
 	constexpr qpl::cipher_config config{
 		.N = 4,
@@ -172,18 +170,25 @@ qpl::size get_random_prime(qpl::size min, qpl::size max) {
 }
 
 template<typename T>
-constexpr T mod_pow(T base, T exp, T mod) {
-    using long_u = qpl::ubit<qpl::bits_in_type<T>() * 2>;
+constexpr T mod_pow(T a, T b, T mod) {
+    using long_u = qpl::integer<qpl::bits_in_type<T>() * 2, false>;
     T result = 1;
-    T power = base % mod;
+    T power = a % mod;
 
     for (qpl::size i = 0; i < qpl::bits_in_type<T>(); ++i) {
-        T least_sig_bit = T{ 0x1 } &(exp >> i);
+        T least_sig_bit = T{ 0x1 } & (b >> i);
         if (least_sig_bit) {
-            result = (long_u{ result } *power) % mod;
+            result = (long_u{ result } * power) % mod;
         }
-        power = (long_u{ power } *power) % mod;
+        power = (long_u{ power } * power) % mod;
     }
+
+    return result;
+}
+template<typename T>
+constexpr T mod_mul(T a, T b, T mod) {
+    using long_u = qpl::integer<qpl::bits_in_type<T>() * 2, false>;
+    T result = (long_u(a) * b) % mod;
 
     return result;
 }
@@ -230,13 +235,13 @@ constexpr qpl::size count_trailing_zeroes(T n) {
 
 template<typename T>
 constexpr T gcd(T a, T b) {
-    if constexpr (qpl::bits_in_type<T>() <= 64) {
-        return std::gcd(a, b);
-    }
-    else {
+    //if constexpr (qpl::bits_in_type<T>() <= 64) {
+    //    return std::gcd(a, b);
+    //}
+    //else {
         if (a == 0) {
             return b;
-        }
+        } 
         if (b == 0) {
             return a;
         }
@@ -250,24 +255,17 @@ constexpr T gcd(T a, T b) {
             b -= a;
         } while (b != 0);
         return a << shift;
-    }
+    //}
 }
 
 template<typename T>
 constexpr T lcm(T a, T b) {
-    if constexpr (qpl::bits_in_type<T>() <= 64) {
-        return std::lcm(a, b);
-    }
-    else {
+    //if constexpr (qpl::bits_in_type<T>() <= 64) {
+    //    return std::lcm(a, b);
+    //}
+    //else {
         return (a / gcd(a, b)) * b;
-    }
-}
-
-template<typename T>
-constexpr T mulmod(T a, T b, T mod) {
-    qpl::ubit<qpl::bits_in_type<T>() * 2> long_a = a;
-    auto result = (long_a * b) % mod;
-    return static_cast<T>(result);
+    //}
 }
 
 template<typename T>
@@ -275,15 +273,11 @@ bool miller_rabin_primality_test(T n, qpl::size rounds = qpl::bits_in_type<T>() 
     if (n < 2) {
         return false;
     }
-    if (n != 2 && n & 0x1 == 0) {
+    if (n != 2 && n % 2 == 0) {
         return false;
     }
     auto ctz = count_trailing_zeroes(n - 1);
     T d = (n - 1) / (T{ 1 } << ctz);
-
-    //qpl::println("checking ", n);
-    //qpl::println("ctz = ", ctz);
-    //qpl::println("d = ", d);
 
     for (qpl::size i = 0; i < rounds; ++i) {
         T a;
@@ -293,18 +287,13 @@ bool miller_rabin_primality_test(T n, qpl::size rounds = qpl::bits_in_type<T>() 
         else {
             a = T::random(T{ 2 }, n - 2);
         }
-        //qpl::println("a = ", a);
-        //qpl::println("d = ", d);
-        //qpl::println("n = ", n);
         T x = mod_pow(a, d, n);
-        //qpl::println("x = ", x);
-        //qpl::println();
 
         if (x == 1 || x == (n - 1))
             continue;
 
         for (size_t r = 0; r < (ctz - 1); ++r) {
-            x = mod_pow(x, T{ 2 }, n);
+            x = mod_mul(x, x, n);
             if (x == 1) {
                 return false;
             }
@@ -327,9 +316,9 @@ struct RSA {
     constexpr static qpl::size prime_square_bits = qpl::significant_bit(prime_square) + 1;
     constexpr static qpl::size mod_pow_bits = qpl::significant_bit(prime_square) * 2 + 1;
 
-    using utype = qpl::ubit<(((prime_square_bits - 1) / 32) + 1) * 32>;
-    using itype = qpl::ibit<(((prime_square_bits - 1) / 32) + 1) * 32>;
-    using umod_type = qpl::ubit<(((mod_pow_bits - 1) / 32) + 1) * 32>;
+    using utype = qpl::integer<(((prime_square_bits - 1) / 32) + 1) * 32, false>;
+    using itype = qpl::integer<(((prime_square_bits - 1) / 32) + 1) * 32, false>;
+    using umod_type = qpl::integer<(((mod_pow_bits - 1) / 32) + 1) * 32, false>;
 
     utype prime1;
     utype prime2;
@@ -375,7 +364,8 @@ struct RSA {
 
     void create_keys() {
         this->mod = this->prime1 * this->prime2;
-        for (this->coprime = 3u; this->coprime < this->lambda; ++this->coprime) {
+        this->coprime = 3u;
+        for (; this->coprime < this->lambda; ++this->coprime) {
             if (gcd(this->coprime, this->lambda) == 1) {
 
                 this->private_key = mod_inverse(static_cast<itype>(this->coprime), static_cast<itype>(this->lambda));
@@ -395,49 +385,123 @@ struct RSA {
     }
 };
 
+template<typename T>
+auto get_random_prime(qpl::size bits, qpl::size rounds = qpl::bits_in_type<T>() / 2) {
+    while (true) {
+        //constexpr auto divide = T{ 6 };
+        constexpr T divide = 6 * 5 * 7 * 11 * 13 * 17 * 19 * 23ull;
+
+        T n;
+        n.randomize_bits(bits);
+
+        n = (n / divide) * divide + 1;
+
+        auto check = miller_rabin_primality_test(n, rounds);
+        if (check) {
+            return n;
+        }
+    }
+    return T{};
+}
+
+
+template<typename T>
+auto get_strong_prime(qpl::size rounds = qpl::bits_in_type<T>() / 2) {
+    qpl::clock clock;
+    qpl::begin_benchmark("get_random_prime");
+    T prime = get_random_prime<T>(qpl::bits_in_type<T>() - 20, rounds / 2);
+    qpl::end_benchmark();
+    T integer1 = 2;
+
+    auto check_rounds = rounds / 4;
+
+    qpl::println("took ", clock.elapsed().small_descriptive_string(), " to find a random prime");
+    clock.reset();
+    qpl::size i = 0u;
+    for (;; ++i) {
+        qpl::begin_benchmark("multiplication");
+        auto check = prime * integer1 + 1;
+        qpl::begin_benchmark_end_previous("miller_rabin");
+        auto is_prime = miller_rabin_primality_test(check, check_rounds);
+        qpl::end_benchmark();
+        if (is_prime) {
+            prime = check;
+            break;
+        }
+        integer1 += 2;
+
+        if (i % 10 == 0u) {
+            qpl::println(i / clock.elapsed_f(), " / sec");
+        }
+    }
+
+    T integer2 = 2;
+    for (;; ++i) {
+        qpl::begin_benchmark("multiplication");
+        auto check = prime * integer1 + 1;
+        qpl::begin_benchmark_end_previous("miller_rabin");
+        auto is_prime = miller_rabin_primality_test(check, check_rounds);
+        qpl::end_benchmark();
+        if (is_prime) {
+            prime = check;
+            break;
+        }
+        integer2 += 2;
+        if (i % 10 == 0u) {
+            qpl::println(i / clock.elapsed_f(), " / sec");
+        }
+    }
+    return std::make_tuple(prime, integer1, integer2);
+}
 
 void find_primes() {
     qpl::clock clock;
     qpl::size primes = 0u;
 
-    using type = qpl::integer<32 * 32, false>;
+    constexpr auto bits = 32 * 16;
+    using type = qpl::integer<bits, false>;
 
     std::vector<std::thread> threads;
     std::atomic_bool writing = true;
 
+    qpl::save_state;
+
     auto find = [&](qpl::size thread) {
         for (qpl::size i = 0u;; ++i) {
-            type n;
-            n.randomize();
 
-            n = n / 6;
-            n = n * 6 + 1;
-            auto check = miller_rabin_primality_test(n, 64);
+            auto strong = get_strong_prime<type>(16);
+            type p = std::get<0u>(strong);
 
-            if (check) {
-                ++primes;
+            while (!writing.load()) {}
+            writing = false;
+            qpl::println("p = ", p);
+            qpl::println("1 = ", std::get<1u>(strong), " factors = ", qpl::prime_factors(qpl::u64_cast(std::get<1u>(strong))));
+            qpl::println("2 = ", std::get<2u>(strong), " factors = ", qpl::prime_factors(qpl::u64_cast(std::get<2u>(strong))));
+            qpl::println();
+            writing = true;
 
-                while (!writing.load()) {}
+            ++primes;
+            while (!writing.load()) {}
 
-                writing = false;
-                qpl::println("thread #", qpl::str_spaced(thread, 2), " found a random ", qpl::bits_in_type<type>(), " bit prime! ", n.hex_string());
-                writing = true;
-            }
-
-            if (thread == 0u && qpl::get_time_signal(180.0)) {
+            if (thread == 0u && qpl::get_time_signal(1.0)) {
                 auto rate = primes / qpl::f64_cast(i);
+                auto prate = primes / clock.elapsed_f();
 
                 while (!writing.load()) {}
+
+                qpl::time t = qpl::secs(1.0 / prate);
+
                 writing = false;
                 qpl::println();
-                qpl::println("finding ", qpl::big_number_string(primes / clock.elapsed_f()), " primes / sec.");
+                qpl::println("finding one prime every ", t.small_descriptive_string(2), " sec.");
+                qpl::print_benchmark();
                 qpl::println();
                 writing = true;
             }
         }
     };
 
-    for (qpl::size i = 0u; i < 12u; ++i) {
+    for (qpl::size i = 0u; i < 1u; ++i) {
         threads.emplace_back(find, i);
     }
     for (auto& i : threads) {
@@ -448,11 +512,6 @@ void find_primes() {
 void check_RSA() {
     constexpr auto prime = 5000'000ull;
     RSA<prime> rsa;
-    RSA<prime>::utype;
-    RSA<prime>::umod_type;
-    RSA<prime>::itype;
-    RSA<prime>::prime_square;
-    RSA<prime>::prime_square_bits;
 
 
     qpl::size gen = 0u;
@@ -468,11 +527,11 @@ void check_RSA() {
         rsa.randomize();
         rsa.create_keys();
 
-        auto message = qpl::random(0ull, rsa.mod);
+        auto message = qpl::random(0ull, rsa.mod.operator size_t());
         auto encrypted = rsa.encrypt(message);
         auto decrypted = rsa.decrypt(encrypted);
 
-        if (decrypted != message) {
+        if (decrypted == message) {
             rsa.print();
             qpl::println("  message = ", qpl::light_red, message);
             qpl::println("encrypted = ", encrypted);
@@ -494,8 +553,11 @@ void check_RSA() {
     }
 }
 
+
 int main() try {
+    //test();
     find_primes();
+    //check_RSA();
 
 	std::string string = "hello world 123125678 hello world 123125678 hello world 123125678";
 	check_encryption(string, "123456");
