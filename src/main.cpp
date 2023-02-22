@@ -170,8 +170,15 @@ qpl::size get_random_prime(qpl::size min, qpl::size max) {
 }
 
 template<typename T>
+using double_precision_type =
+qpl::conditional<qpl::if_true<qpl::is_qpl_integer<T>()>, qpl::integer<qpl::bits_in_type<T>() * 2, false>,
+    qpl::if_true<qpl::is_qpl_x64_integer<T>()>, qpl::x64_integer<qpl::bits_in_type<T>() * 2, false>,
+    qpl::ubit< qpl::bits_in_type<T>() * 2>>;
+
+template<typename T>
 constexpr T mod_pow(T a, T b, T mod) {
-    using long_u = qpl::integer<qpl::bits_in_type<T>() * 2, false>;
+    //using long_u = T::with_bits_type<qpl::bits_in_type<T>() * 2>;
+    using long_u = double_precision_type<T>;
     T result = 1;
     T power = a % mod;
 
@@ -187,7 +194,8 @@ constexpr T mod_pow(T a, T b, T mod) {
 }
 template<typename T>
 constexpr T mod_mul(T a, T b, T mod) {
-    using long_u = qpl::integer<qpl::bits_in_type<T>() * 2, false>;
+    //using long_u = typename T::with_bits_type<qpl::bits_in_type<T>() * 2>;
+    using long_u = double_precision_type<T>;
     T result = (long_u(a) * b) % mod;
 
     return result;
@@ -464,8 +472,6 @@ void find_primes() {
     std::vector<std::thread> threads;
     std::atomic_bool writing = true;
 
-    qpl::save_state;
-
     auto find = [&](qpl::size thread) {
         for (qpl::size i = 0u;; ++i) {
 
@@ -510,7 +516,8 @@ void find_primes() {
 }
 
 void check_RSA() {
-    constexpr auto prime = 5000'000ull;
+
+    constexpr auto prime = 500000'000ull;
     RSA<prime> rsa;
 
 
@@ -555,6 +562,8 @@ void check_RSA() {
 
 
 int main() try {
+    auto a = get_random_prime<qpl::x64_integer<256, false>>(200);
+
     //test();
     find_primes();
     //check_RSA();
