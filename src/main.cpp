@@ -1,4 +1,5 @@
 #include <qpl/qpl.hpp>
+#include <gmpxx.h>
 
 namespace crypto {
 	constexpr qpl::cipher_config config{
@@ -438,9 +439,9 @@ auto get_strong_prime(qpl::size rounds = qpl::bits_in_type<T>() / 2) {
         }
         integer1 += 2;
 
-        if (i % 10 == 0u) {
-            qpl::println(i / clock.elapsed_f(), " / sec");
-        }
+        //if (i % 10 == 0u) {
+        //    qpl::println(i / clock.elapsed_f(), " / sec");
+        //}
     }
 
     T integer2 = 2;
@@ -455,9 +456,9 @@ auto get_strong_prime(qpl::size rounds = qpl::bits_in_type<T>() / 2) {
             break;
         }
         integer2 += 2;
-        if (i % 10 == 0u) {
-            qpl::println(i / clock.elapsed_f(), " / sec");
-        }
+        //if (i % 10 == 0u) {
+        //    qpl::println(i / clock.elapsed_f(), " / sec");
+        //}
     }
     return std::make_tuple(prime, integer1, integer2);
 }
@@ -507,7 +508,7 @@ void find_primes() {
         }
     };
 
-    for (qpl::size i = 0u; i < 1u; ++i) {
+    for (qpl::size i = 0u; i < 12u; ++i) {
         threads.emplace_back(find, i);
     }
     for (auto& i : threads) {
@@ -562,7 +563,13 @@ void check_RSA() {
 
 
 int main() try {
-    auto a = get_random_prime<qpl::x64_integer<256, false>>(200);
+    mpz_class a, b, c;
+
+    a = 1234;
+    b = "-5678";
+    c = a + b;
+    std::cout << "sum is " << c << "\n";
+    std::cout << "absolute value is " << abs(c) << "\n";
 
     //test();
     find_primes();
