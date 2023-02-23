@@ -386,7 +386,8 @@ auto get_strong_prime(qpl::size bits, qpl::size sub_bits, qpl::size rounds = qpl
     T k;
 
     for (qpl::size j = 0u; j < 2u; ++j) {
-        k = 200u;
+        //k = 200u;
+        k = 2u;
         for (qpl::size i = 0u;; ++i) {
             search = T{ prime * k + 1 };
             auto is_prime = miller_rabin_primality_test(search, bits, rounds);
@@ -497,7 +498,8 @@ void find_primes(qpl::size bits) {
 
             auto rounds = 1u;
 
-            auto sub = bits == 4096u ? 19u : 16u;
+           //&auto sub = bits == 4096u ? 19u : 16u;
+            auto sub = bits == 8192u ? 21u : 16u;
             auto prime = get_strong_prime<T>(bits, sub, rounds);
 
 
@@ -538,7 +540,7 @@ void find_primes(qpl::size bits) {
         }
     };
 
-    for (qpl::size i = 0u; i < 12u; ++i) {
+    for (qpl::size i = 0u; i < 6u; ++i) {
         threads.emplace_back(find, i);
     }
     for (auto& i : threads) {
