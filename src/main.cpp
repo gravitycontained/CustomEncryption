@@ -261,21 +261,6 @@ namespace maths {
         return (a / gcd(a, b)) * b;
     }
 
-    auto primes = qpl::generate_primes<qpl::u32>(1024 * 4);
-    template<typename T>
-    constexpr T gpf(T n) {
-
-        for (auto& prime : primes) {
-            T p;
-            p = prime;
-
-            if (n % p == 0) {
-                T result = (n / p);
-                return ::gcd(n, result);
-            }
-        }
-        return 0;
-    }
 }
 
 namespace random {
@@ -392,39 +377,34 @@ auto get_random_prime(qpl::size bits, qpl::size rounds = qpl::size_max) {
 }
 
 template<typename T>
-auto get_strong_prime(qpl::size bits, qpl::size delta, qpl::size rounds = qpl::size_max) {
+auto get_strong_prime(qpl::size bits, qpl::size sub_bits, qpl::size rounds = qpl::size_max) {
     if (rounds == qpl::size_max) {
         rounds = bits / 2;
     }
+    T prime = get_random_prime<T>(bits - sub_bits, rounds);
+    T search;
+    T k;
 
-    T prime;
-    while (true) {
-        prime = get_random_prime<T>(bits, rounds);
+    for (qpl::size j = 0u; j < 2u; ++j) {
+        k = 200u;
+        for (qpl::size i = 0u;; ++i) {
+            search = T{ prime * k + 1 };
+            auto is_prime = miller_rabin_primality_test(search, bits, rounds);
+            if (is_prime) {
 
-        auto largest_factor = maths::gpf(T{ prime - 1 });
-        if (largest_factor == 0) {
-            continue;
-        }
-
-        auto bits = largest_factor.get_str(2u).length();
-        if (bits > (bits - delta)) {
-            auto largest_factor2 = maths::gpf(T{ largest_factor - 1 });
-            if (largest_factor2 == 0) {
-                continue;
+                qpl::println("found k = ", k);
+                prime = search;
+                break;
             }
 
-            bits = largest_factor2.get_str(2u).length();
-            if (bits > (bits - delta * 2)) {
-
-                qpl::println("found ", prime);
-                qpl::println("with factor ", largest_factor);
-                qpl::println(", and factor ", largest_factor2);
-                return prime;
+            if (i % 10u == 0u) {
+                if (search.get_str(2u).length() > bits) {
+                    return T{ 0 };
+                }
             }
+            k += 2;
         }
     }
-
-
 
     return prime;
 }
@@ -517,7 +497,8 @@ void find_primes(qpl::size bits) {
 
             auto rounds = 1u;
 
-            auto prime = get_strong_prime<T>(bits, 20, rounds);
+            auto sub = bits == 4096u ? 19u : 16u;
+            auto prime = get_strong_prime<T>(bits, sub, rounds);
 
 
             //auto prime = get_strong_prime<T>(bits, 8u, rounds);
@@ -528,15 +509,13 @@ void find_primes(qpl::size bits) {
 
             std::lock_guard lock{ mu };
 
-
-
             if (prime != 0) {
                 qpl::println("thread #", qpl::str_spaced(thread, 2), " found a prime with ", prime.get_str(2u).length(), " bits");
                 primes.push_back(prime);
 
                 ++print_ctr;
 
-                if (print_ctr % 5u == 0u) {
+                if (print_ctr % 1u == 0u) {
                     auto rate = clock.elapsed_f() / primes.size();
 
                     qpl::size sum = 0u;
@@ -613,8 +592,52 @@ void check_RSA() {
 }
 
 
+//void find_strong_primes() {
+//    while (true) {
+//        constexpr auto bits = 64u;
+//        constexpr auto rounds = 3u;
+//
+//        auto prime = get_random_prime<mpz_class>(bits, rounds);
+//
+//        auto prime2 = mpz_class{ prime - 1 };
+//
+//        bool abort = false;
+//        while (!abort) {
+//            bool check = miller_rabin_primality_test(prime2, bits, rounds);
+//            if (check) {
+//                abort = false;
+//                break;
+//            }
+//            auto factor = maths::get_first_prime_factor(prime2);
+//            if (factor == 0) {
+//                abort = true;
+//                break;
+//            }
+//            prime2 = prime2 / factor;
+//
+//        }
+//        if (abort) {
+//            //qpl::println("couldn't find a factor for ", prime2);
+//            //qpl::println("even though miller_rabin said it's probably not prime");
+//            //bool check = miller_rabin_primality_test(prime2, bits, rounds);
+//            //qpl::println(": ", check);
+//            continue;
+//        }
+//
+//
+//        qpl::println("prime      = ", prime);
+//        qpl::println("big factor = ", prime2);
+//        if (prime2.get_str(2u).length() > (bits - bits / 4)) {
+//            qpl::println("prime      = ", prime);
+//            qpl::println("big factor = ", prime2);
+//        }
+//    }
+//}
+
 int main() try {
     random::init();
+
+    //find_strong_primes();
 
     //auto is_prime = miller_rabin_primality_test(c, 16);
     //qpl::println("is_prime: ", is_prime);
@@ -624,8 +647,8 @@ int main() try {
     //using type = qpl::integer<bits, false>;
     //
     //find_primes<mpz_class>(2048);
-    //find_primes<mpz_class>(4096);
-    //find_primes<mpz_class>(128);
+    find_primes<mpz_class>(4096);
+    //find_primes<mpz_class>(2048);
     check_RSA();
 
     //std::string string = "hello world 123125678 hello world 123125678 hello world 123125678";
