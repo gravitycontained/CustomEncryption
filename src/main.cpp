@@ -510,6 +510,7 @@ void find_primes(qpl::size bits) {
             std::lock_guard lock{ mu };
 
             if (prime != 0) {
+                qpl::clear_console();
                 qpl::println("thread #", qpl::str_spaced(thread, 2), " found a prime with ", prime.get_str(2u).length(), " bits");
                 primes.push_back(prime);
 
@@ -532,7 +533,6 @@ void find_primes(qpl::size bits) {
                     auto exact_rate = clock.elapsed_f() / exact_primes;
                     qpl::println("rate is 1 prime every ", qpl::secs(rate).small_descriptive_string(), ". (", primes.size(), " found so far)");
                     qpl::println("exra is 1 prime every ", qpl::secs(exact_rate).small_descriptive_string(), ". (", exact_primes, " found so far)");
-                    qpl::println("bits average = ", qpl::f64_cast(sum) / primes.size());
                 }
             }
         }
