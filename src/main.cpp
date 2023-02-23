@@ -397,11 +397,11 @@ auto get_strong_prime(qpl::size bits, qpl::size sub_bits, qpl::size rounds = qpl
                 break;
             }
 
-            if (i % 10u == 0u) {
-                if (search.get_str(2u).length() > bits) {
-                    return T{ 0 };
-                }
-            }
+            //if (i % 10u == 0u) {
+            //    if (search.get_str(2u).length() > bits) {
+            //        return T{ 0 };
+            //    }
+            //}
             k += 2;
         }
     }
@@ -519,20 +519,20 @@ void find_primes(qpl::size bits) {
                 if (print_ctr % 1u == 0u) {
                     auto rate = clock.elapsed_f() / primes.size();
 
-                    qpl::size sum = 0u;
+                    //qpl::size sum = 0u;
 
-                    qpl::size exact_primes = 0u;
+                    //qpl::size exact_primes = 0u;
                     for (auto& i : primes) {
-                        auto str = i.get_str(2);
-                        if (str.length() == bits) {
-                            ++exact_primes;
+                        //auto str = i.get_str(2);
+                        //if (str.length() == bits) {
+                        //    ++exact_primes;
                             qpl::println("\"", i.get_str(16), "\", ");
-                        }
-                        sum += str.length();
+                        //}
+                        //sum += str.length();
                     }
-                    auto exact_rate = clock.elapsed_f() / exact_primes;
+                    //auto exact_rate = clock.elapsed_f() / exact_primes;
                     qpl::println("rate is 1 prime every ", qpl::secs(rate).small_descriptive_string(), ". (", primes.size(), " found so far)");
-                    qpl::println("exra is 1 prime every ", qpl::secs(exact_rate).small_descriptive_string(), ". (", exact_primes, " found so far)");
+                    //qpl::println("exra is 1 prime every ", qpl::secs(exact_rate).small_descriptive_string(), ". (", exact_primes, " found so far)");
                 }
             }
         }
