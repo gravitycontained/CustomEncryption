@@ -540,7 +540,7 @@ void find_primes(qpl::size bits) {
         }
     };
 
-    for (qpl::size i = 0u; i < 6u; ++i) {
+    for (qpl::size i = 0u; i < 4u; ++i) {
         threads.emplace_back(find, i);
     }
     for (auto& i : threads) {
@@ -649,7 +649,7 @@ int main() try {
     //using type = qpl::integer<bits, false>;
     //
     //find_primes<mpz_class>(2048);
-    find_primes<mpz_class>(4096);
+    find_primes<mpz_class>(4096 * 2);
     //find_primes<mpz_class>(2048);
     check_RSA();
 
