@@ -1,0 +1,15 @@
+
+128
+rate is 773.861 primes / sec. (77339 found so far)
+average integer1 = 77.8644
+average integer2 = 81.6252
+
+512
+rate is 20.5503 primes / sec. (5892 found so far)
+average integer1 = 343.42
+average integer2 = 344.31
+
+1024
+rate is 3.98729 primes / sec. (2814 found so far)
+average integer1 = 699.172
+average integer2 = 706.715
