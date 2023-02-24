@@ -3,6 +3,8 @@
 #pragma warning (disable : 4146)
 #include <gmpxx.h>
 
+std::mutex mu;
+
 namespace crypto {
     constexpr qpl::cipher_config config{
         .N = 4,
@@ -257,6 +259,7 @@ namespace maths {
         return (a / gcd(a, b)) * b;
     }
 
+    auto primes = qpl::generate_primes<qpl::u32, 1024>();
 }
 
 namespace random {
@@ -343,14 +346,25 @@ bool miller_rabin_primality_test(T n, qpl::size bits, qpl::size rounds = qpl::si
 }
 
 template<typename T>
+bool is_prime(T n, qpl::size bits, qpl::size rounds = qpl::size_max) {
+    //for (auto& i : maths::primes) {
+    //    if (n % i == 0) {
+    //        return false;
+    //    }
+    //}
+    return miller_rabin_primality_test(n, bits, rounds);
+}
+
+template<typename T>
 auto get_random_prime(qpl::size bits, qpl::size rounds = qpl::size_max) {
     if (rounds == qpl::size_max) {
         rounds = bits / 2;
     }
 
     T divide;
-    //divide = 6 * 5 * 7 * 11 * 13 * 17 * 19 * 23u;
-    divide = 6 * 5u;
+    divide = 6 * 5 * 7 * 11 * 13 * 17 * 19 * 23u;
+    //divide = 6 * 5u;
+    //divide = 2u;
     T n;
     while (true) {
         //constexpr auto divide = T{ 6 };
@@ -364,7 +378,7 @@ auto get_random_prime(qpl::size bits, qpl::size rounds = qpl::size_max) {
         }
 
         if (n.get_str(2u).length() == bits) {
-            auto check = miller_rabin_primality_test(n, bits, rounds);
+            auto check = is_prime(n, bits, rounds);
             if (check) {
                 return n;
             }
@@ -394,9 +408,13 @@ auto get_two_strong_primes(qpl::size bits, qpl::size sub_bits, qpl::size rounds 
 
                 for (qpl::size i = 0u;; ++i) {
                     search = T{ prime * k + 1 };
-                    auto is_prime = miller_rabin_primality_test(search, bits, rounds);
-                    if (is_prime) {
-                        //qpl::println("found k", j + 1, ": ", k);
+                    auto prime_check = is_prime(search, bits, rounds);
+                    if (prime_check) {
+
+                        mu.lock();
+                        qpl::println("thrad #", thread_index, " found k", j + 1, ": ", k);
+                        mu.unlock();
+
                         prime = search;
                         break;
                     }
@@ -457,7 +475,7 @@ auto get_strong_prime(qpl::size bits, qpl::size sub_bits, qpl::size rounds = qpl
 
                 for (qpl::size i = 0u;; ++i) {
                     search = T{ prime * k + 1 };
-                    auto is_prime = miller_rabin_primality_test(search, bits, rounds);
+                    auto is_prime = is_prime(search, bits, rounds);
                     if (is_prime) {
                         prime = search;
                         break;
@@ -516,7 +534,7 @@ struct RSA {
         /*10 */ 16u,
         /*11 */ 17u,
         /*12 */ 19u,
-        /*13 */ 22u,
+        /*13 */ 19u,
     };
 
     constexpr auto get_sub() const {
@@ -576,11 +594,11 @@ struct RSA {
             lambda = mpz_class{ lcm(p1, p2) };
 
             if (lambda == p1 || lambda == p2) {
-                qpl::println("lambda was p1 or p2");
+                //qpl::println("lambda was p1 or p2");
                 continue;
             }
             if (prime1 != prime2) {
-                qpl::println("prime1 != prime2, so found it");
+                //qpl::println("prime1 != prime2, so found it");
                 break;
             }
 
@@ -618,8 +636,6 @@ struct RSA {
         return result;
     }
 };
-
-std::mutex mu;
 
 template<typename T>
 void find_primes(qpl::size bits) {
@@ -703,11 +719,11 @@ void check_RSA() {
 
         rsa.randomize();
 
-        if (gen % 1 == 0u) {
+        if ((gen + 1) % 2 == 0u) {
             qpl::println("for bits = ", bits, " (sub = ", rsa.get_sub(), ")");
             qpl::println("prime bits average: ", bit_sum / (gen + 1));
             qpl::println("mod bits average:   ", mod_sum / (gen + 1));
-            qpl::println("rate = 1 every ", qpl::secs(((gen + 1) / clock.elapsed_f()) * 2).small_descriptive_string());
+            qpl::println("rate = 1 every ", qpl::secs((clock.elapsed_f() / (gen + 1)) / 2).small_descriptive_string());
             qpl::println();
         }
 
