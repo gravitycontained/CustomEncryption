@@ -266,7 +266,18 @@ namespace random {
     gmp_randclass engine(gmp_randinit_default);
 
     void init() {
-        engine.seed(qpl::u32_cast(time(NULL)));
+        std::string str = "";
+
+        for (qpl::size i = 0u; i < 10u; ++i) {
+            qpl::detail::rng.engine.engine.shuffle();
+        }
+        for (qpl::size i = 0u; i < 1024u; ++i) {
+            str += qpl::hex_string(qpl::random(), "");
+        }
+        mpz_class seed;
+        mpz_set_str(seed.get_mpz_t(), str.c_str(), 16);
+
+        engine.seed(seed);
     }
 }
 
@@ -412,7 +423,7 @@ auto get_two_strong_primes(qpl::size bits, qpl::size sub_bits, qpl::size rounds 
                     if (prime_check) {
 
                         mu.lock();
-                        qpl::println("thrad #", thread_index, " found k", j + 1, ": ", k);
+                        qpl::println("thread #", thread_index, " found k", j + 1, ": ", k);
                         mu.unlock();
 
                         prime = search;
@@ -457,63 +468,38 @@ auto get_two_strong_primes(qpl::size bits, qpl::size sub_bits, qpl::size rounds 
 
 template<typename T, qpl::size threads = 1u>
 auto get_strong_prime(qpl::size bits, qpl::size sub_bits, qpl::size rounds = qpl::size_max) {
-    std::atomic_bool found_prime = false;
+    if (rounds == qpl::size_max) {
+        rounds = bits / 2;
+    }
+    T prime = get_random_prime<T>(bits - sub_bits, rounds);
+    T search;
+    T k;
 
-    T result;
+    for (qpl::size j = 0u; j < 2u; ++j) {
+        k = 64u;
 
-    auto find = [&]() {
-        while (true) {
-            if (rounds == qpl::size_max) {
-                rounds = bits / 2;
+        for (qpl::size i = 0u;; ++i) {
+            search = T{ prime * k + 1 };
+            auto check_prime = is_prime(search, bits, rounds);
+            if (check_prime) {
+
+                mu.lock();
+                qpl::println("found k", j + 1, ": ", k);
+                mu.unlock();
+                prime = search;
+                break;
             }
-            T prime = get_random_prime<T>(bits - sub_bits, rounds);
-            T search;
-            T k;
-
-            for (qpl::size j = 0u; j < 2u; ++j) {
-                k = 64u;
-
-                for (qpl::size i = 0u;; ++i) {
-                    search = T{ prime * k + 1 };
-                    auto is_prime = is_prime(search, bits, rounds);
-                    if (is_prime) {
-                        prime = search;
-                        break;
-                    }
-                    k += 2;
-                    if (found_prime.load()) {
-                        return;
-                    }
-                }
-            }
-
-            if (found_prime.load()) {
-                return;
-            }
-
-            found_prime = true;
-            result = prime;
-            qpl::println("found a prime ", prime.get_str(16));
+            k += 2;
         }
-    };
-
-
-    std::vector<std::thread> threads_collection;
-    for (qpl::size i = 0u; i < threads; ++i) {
-        threads_collection.emplace_back(find);
-    }
-    for (auto& i : threads_collection) {
-        i.join();
     }
 
-    qpl::println("closed all threads");
-    return result;
+    return prime;
 }
 
 qpl::f64 bit_sum = 0.0;
 qpl::f64 mod_sum = 0.0;
 
-template<qpl::size bits, qpl::size threads = 10>
+template<qpl::size bits, qpl::size threads = 12>
 struct RSA {
     mpz_class mod;
     mpz_class private_key;
@@ -534,10 +520,10 @@ struct RSA {
         /*10 */ 16u,
         /*11 */ 17u,
         /*12 */ 19u,
-        /*13 */ 19u,
+        /*13 */ 23u,
     };
 
-    constexpr auto get_sub() const {
+    constexpr static auto get_sub() {
         return subs[qpl::log2(bits)];
     }
 
@@ -637,8 +623,8 @@ struct RSA {
     }
 };
 
-template<typename T>
-void find_primes(qpl::size bits) {
+template<typename T, qpl::size bits>
+void find_primes() {
     qpl::clock clock;
 
     std::vector<std::thread> threads;
@@ -655,7 +641,7 @@ void find_primes(qpl::size bits) {
 
             auto rounds = 1u;
 
-            auto sub = bits == 8192u ? 22u : 19u;
+            constexpr auto sub = RSA<bits>::get_sub();
             auto prime = get_strong_prime<T>(bits, sub, rounds);
 
 
@@ -676,19 +662,17 @@ void find_primes(qpl::size bits) {
                 if (print_ctr % 1u == 0u) {
                     auto rate = clock.elapsed_f() / primes.size();
 
-                    //qpl::size sum = 0u;
+                    qpl::size sum = 0u;
 
                     //qpl::size exact_primes = 0u;
                     for (auto& i : primes) {
-                        //auto str = i.get_str(2);
-                        //if (str.length() == bits) {
-                        //    ++exact_primes;
-                            qpl::println("\"", i.get_str(16), "\", ");
-                        //}
-                        //sum += str.length();
+                        auto str = i.get_str(2);
+                        qpl::println("\"", i.get_str(16), "\", ");
+                        sum += str.length();
                     }
                     //auto exact_rate = clock.elapsed_f() / exact_primes;
                     qpl::println("rate is 1 prime every ", qpl::secs(rate).small_descriptive_string(), ". (", primes.size(), " found so far)");
+                    qpl::println("bits average is ", qpl::f64_cast(sum) / primes.size());
                     //qpl::println("exra is 1 prime every ", qpl::secs(exact_rate).small_descriptive_string(), ". (", exact_primes, " found so far)");
                 }
             }
@@ -758,9 +742,9 @@ int main() try {
     random::init();
     
     //find_primes<mpz_class>(2048);
-    //find_primes<mpz_class>(4096 * 2);
+    find_primes<mpz_class, 4096u * 2>();
     //find_primes<mpz_class>(4096);
-    check_RSA();
+    //check_RSA();
 
     //std::string string = "hello world 123125678 hello world 123125678 hello world 123125678";
     //check_encryption(string, "123456");
