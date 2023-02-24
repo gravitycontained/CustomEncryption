@@ -519,8 +519,8 @@ struct RSA {
         /* 9 */ 13u,
         /*10 */ 16u,
         /*11 */ 17u,
-        /*12 */ 19u,
-        /*13 */ 23u,
+        /*12 */ 20u,
+        /*13 */ 22u,
     };
 
     constexpr static auto get_sub() {
@@ -679,7 +679,7 @@ void find_primes() {
         }
     };
 
-    for (qpl::size i = 0u; i < 12u; ++i) {
+    for (qpl::size i = 0u; i < 4u; ++i) {
         threads.emplace_back(find, i);
     }
     for (auto& i : threads) {
