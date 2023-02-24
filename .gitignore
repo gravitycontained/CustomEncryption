@@ -4,3 +4,4 @@ Release/
 *.vcxproj
 *.vcxproj.filters
 *.vcxproj.user
+/secret

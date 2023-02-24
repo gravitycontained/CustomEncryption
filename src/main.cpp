@@ -3,6 +3,8 @@
 #pragma warning (disable : 4146)
 #include <gmpxx.h>
 
+
+
 std::mutex mu;
 
 namespace crypto {
@@ -679,7 +681,7 @@ void find_primes() {
         }
     };
 
-    for (qpl::size i = 0u; i < 4u; ++i) {
+    for (qpl::size i = 0u; i < 12u; ++i) {
         threads.emplace_back(find, i);
     }
     for (auto& i : threads) {
@@ -742,7 +744,7 @@ int main() try {
     random::init();
     
     //find_primes<mpz_class>(2048);
-    find_primes<mpz_class, 4096u * 2>();
+    find_primes<mpz_class, 4096u>();
     //find_primes<mpz_class>(4096);
     //check_RSA();
 
