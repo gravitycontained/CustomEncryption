@@ -175,22 +175,6 @@ qpl::conditional<
 namespace maths {
 
     template<typename T>
-    constexpr T mod_pow(T a, T b, T mod, qpl::size bits) {
-        using long_u = double_precision_type<T>;
-        T result = 1;
-        T power = a % mod;
-
-        for (qpl::size i = 0; i < bits; ++i) {
-            T least_sig_bit = T{ 0x1 } &(b >> i);
-            if (least_sig_bit != 0) {
-                result = (long_u{ result } *power) % mod;
-            }
-            power = (long_u{ power } *power) % mod;
-        }
-
-        return result;
-    }
-    template<typename T>
     constexpr T mod_mul(T a, T b, T mod) {
         using long_u = double_precision_type<T>;
         T result = (long_u(a) * b) % mod;
@@ -226,6 +210,18 @@ namespace maths {
 
     template<typename T>
     constexpr qpl::size count_trailing_zeroes(T n) {
+        qpl::size bits = 0;
+        if (n != 0) {
+            while ((n & 1) == 0) {
+                ++bits;
+                n >>= 1;
+            }
+        }
+        return bits;
+    }
+
+    template<typename T>
+    constexpr qpl::size count_trailing_zeroes_and_reduce(T& n) {
         qpl::size bits = 0;
         if (n != 0) {
             while ((n & 1) == 0) {
@@ -309,19 +305,15 @@ bool miller_rabin_primality_test(T n, qpl::size bits, qpl::size rounds = qpl::si
     if (n != 2 && n % 2 == 0) {
         return false;
     }
-    auto ctz = maths::count_trailing_zeroes(T{ n - 1 });
+
     T d = (n - 1);
-    d >>= ctz;
+    auto ctz = maths::count_trailing_zeroes_and_reduce(d);
 
 
     for (qpl::size k = 0; k < rounds; ++k) {
         T a = get_random_range(T{ 2 }, T{ n - 2 });
-        T x = maths::mod_pow(a, d, n, bits);
-        //T x;    
-        //mpz_t tmp;
-        //mpz_init(tmp);
-        //mpz_powm(tmp, a, d, n);
-        //mpz_clear(tmp);
+        T x;
+        mpz_powm(x.get_mpz_t(), a.get_mpz_t(), d.get_mpz_t(), n.get_mpz_t());
 
         if (x == 1 || x == (n - 1)) {
             continue;
@@ -329,7 +321,10 @@ bool miller_rabin_primality_test(T n, qpl::size bits, qpl::size rounds = qpl::si
 
         if (ctz) {
             for (qpl::size i = 0u; i < (ctz - 1); ++i) {
-                x = maths::mod_mul(x, x, n);
+                //x = maths::mod_mul(x, x, n);
+
+                T mul = 2;
+                mpz_powm(x.get_mpz_t(), x.get_mpz_t(), mul.get_mpz_t(), n.get_mpz_t());
 
                 if (x == 1) {
                     return false;
@@ -387,7 +382,7 @@ auto get_strong_prime(qpl::size bits, qpl::size sub_bits, qpl::size rounds = qpl
 
     for (qpl::size j = 0u; j < 2u; ++j) {
         //k = 200u;
-        k = 2u;
+        k = 64u;
         for (qpl::size i = 0u;; ++i) {
             search = T{ prime * k + 1 };
             auto is_prime = miller_rabin_primality_test(search, bits, rounds);
@@ -471,10 +466,14 @@ struct RSA {
     }
 
     auto encrypt(mpz_class message) const {
-        return maths::mod_pow<mpz_class>(message, this->public_key, this->mod, bits);
+        mpz_class result;
+        mpz_powm(result.get_mpz_t(), message.get_mpz_t(), this->public_key.get_mpz_t(), this->mod.get_mpz_t());
+        return result;
     }
     auto decrypt(mpz_class message) const {
-        return maths::mod_pow<mpz_class>(message, this->private_key, this->mod, bits);
+        mpz_class result;
+        mpz_powm(result.get_mpz_t(), message.get_mpz_t(), this->private_key.get_mpz_t(), this->mod.get_mpz_t());
+        return result;
     }
 };
 
@@ -498,8 +497,7 @@ void find_primes(qpl::size bits) {
 
             auto rounds = 1u;
 
-           //&auto sub = bits == 4096u ? 19u : 16u;
-            auto sub = bits == 8192u ? 21u : 16u;
+            auto sub = bits == 8192u ? 22u : 19u;
             auto prime = get_strong_prime<T>(bits, sub, rounds);
 
 
@@ -512,7 +510,6 @@ void find_primes(qpl::size bits) {
             std::lock_guard lock{ mu };
 
             if (prime != 0) {
-                qpl::clear_console();
                 qpl::println("thread #", qpl::str_spaced(thread, 2), " found a prime with ", prime.get_str(2u).length(), " bits");
                 primes.push_back(prime);
 
@@ -540,7 +537,7 @@ void find_primes(qpl::size bits) {
         }
     };
 
-    for (qpl::size i = 0u; i < 4u; ++i) {
+    for (qpl::size i = 0u; i < 12u; ++i) {
         threads.emplace_back(find, i);
     }
     for (auto& i : threads) {
@@ -593,63 +590,17 @@ void check_RSA() {
     }
 }
 
-
-//void find_strong_primes() {
-//    while (true) {
-//        constexpr auto bits = 64u;
-//        constexpr auto rounds = 3u;
-//
-//        auto prime = get_random_prime<mpz_class>(bits, rounds);
-//
-//        auto prime2 = mpz_class{ prime - 1 };
-//
-//        bool abort = false;
-//        while (!abort) {
-//            bool check = miller_rabin_primality_test(prime2, bits, rounds);
-//            if (check) {
-//                abort = false;
-//                break;
-//            }
-//            auto factor = maths::get_first_prime_factor(prime2);
-//            if (factor == 0) {
-//                abort = true;
-//                break;
-//            }
-//            prime2 = prime2 / factor;
-//
-//        }
-//        if (abort) {
-//            //qpl::println("couldn't find a factor for ", prime2);
-//            //qpl::println("even though miller_rabin said it's probably not prime");
-//            //bool check = miller_rabin_primality_test(prime2, bits, rounds);
-//            //qpl::println(": ", check);
-//            continue;
-//        }
-//
-//
-//        qpl::println("prime      = ", prime);
-//        qpl::println("big factor = ", prime2);
-//        if (prime2.get_str(2u).length() > (bits - bits / 4)) {
-//            qpl::println("prime      = ", prime);
-//            qpl::println("big factor = ", prime2);
-//        }
-//    }
-//}
-
 int main() try {
-    random::init();
-
-    //find_strong_primes();
-
-    //auto is_prime = miller_rabin_primality_test(c, 16);
-    //qpl::println("is_prime: ", is_prime);
-
     //test();
-    //constexpr auto bits = 32 * 16;
-    //using type = qpl::integer<bits, false>;
-    //
+
+    random::init();
+    
+    mpz_class a;
+
     //find_primes<mpz_class>(2048);
     find_primes<mpz_class>(4096 * 2);
+    //find_primes<mpz_class>(4096);
+    //find_primes<mpz_class>(512);
     //find_primes<mpz_class>(2048);
     check_RSA();
 
