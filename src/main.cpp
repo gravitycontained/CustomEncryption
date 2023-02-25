@@ -2,7 +2,6 @@
 
 #pragma warning (disable : 4146)
 #include <gmpxx.h>
-
 std::mutex mu;
 
 namespace crypto {
@@ -583,21 +582,186 @@ struct RSA {
         if (prime1 == prime2) {
             return false;
         }
+        auto mod = mpz_class{ prime1 * prime2 };
+        if (mod.get_str(2u).length() % 8u) {
+            return false;
+        }
 
         this->create(prime1, prime2, lambda);
         return true;
     }
 
-    auto encrypt(mpz_class message) const {
+    auto encrypt_integer(mpz_class message) const {
         mpz_class result;
         mpz_powm(result.get_mpz_t(), message.get_mpz_t(), this->public_key.get_mpz_t(), this->mod.get_mpz_t());
         return result;
     }
-    auto decrypt(mpz_class message) const {
+    auto decrypt_integer(mpz_class message) const {
         mpz_class result;
         mpz_powm(result.get_mpz_t(), message.get_mpz_t(), this->private_key.get_mpz_t(), this->mod.get_mpz_t());
         return result;
     }
+
+    void pad_string(std::string& string) const {
+        auto diff = qpl::signed_cast(this->get_bits() / 4) - qpl::signed_cast(string.length());
+        if (diff > 0) {
+            string = qpl::to_string(qpl::to_string_repeat("0", diff), string);
+        }
+    }
+
+    auto encrypt_single_hex(const std::string_view& message) const {
+        mpz_class n;
+        n.set_str(message.data(), 16);
+
+        auto str = this->encrypt_integer(n).get_str(16);
+        this->pad_string(str);
+        return str;
+    }
+    auto decrypt_single_hex(const std::string_view& message) const {
+        mpz_class n;
+        n.set_str(message.data(), 16);
+        auto str = this->decrypt_integer(n).get_str(16);
+        this->pad_string(str);
+        return str;
+    }
+
+    template<typename Hash>
+    std::optional<std::string> encrypt_hex_OAEP(const std::string_view& message, Hash hash_object = qpl::sha512_object, std::string label = "") const {
+        auto hash_size = hash_object.second / 8u;
+        auto k = this->get_bits() / 4;
+        auto lhash = hash_object.first(label);
+        
+        auto ps_length = qpl::signed_cast(k) - 2 * qpl::signed_cast(message.length()) - 4 * qpl::signed_cast(hash_size) - 4;
+
+        if (ps_length < 0) {
+            return std::nullopt;
+        }
+        std::string ps;
+        ps.resize(ps_length, '0');
+
+        auto seed = qpl::get_random_string_full_range(hash_size);
+
+        std::string db;
+        db.append(lhash);
+        //db.append(qpl::hex_string(ps));
+        db.append(ps);
+        db.append("01");
+        db.append(qpl::hex_string(message));
+
+        auto db_mask_size = k - 2 * hash_size - 2;
+        auto db_mask = qpl::mgf1(seed, db_mask_size, hash_object);
+        auto masked_db = qpl::hex_string_xor(db, db_mask);
+        auto seed_mask = qpl::mgf1(qpl::from_hex_string(masked_db), hash_size * 2, hash_object);
+        auto masked_seed = qpl::hex_string_xor(seed_mask, qpl::hex_string(seed));
+
+        std::string em;
+        em.append("00");
+        em.append(masked_seed);
+        em.append(masked_db);
+
+        //qpl::println("E em = ", em);
+        //qpl::println("E db = ", db);
+        //qpl::println("E db = ", db.length());
+        //qpl::println("E db_mask = ", db_mask.length());
+        //qpl::println("E masked_db = ", masked_db.length());
+        return this->encrypt_single_hex(em);
+    }
+
+    template<typename Hash>
+    std::optional<std::string> decrypt_hex_OAEP(const std::string_view& message, Hash hash_object = qpl::sha512_object, std::string label = "") const {
+
+        auto em = this->decrypt_single_hex(message);
+        auto hash_size = hash_object.second / 8u;
+        auto k = this->get_bits() / 4;
+        auto lhash = hash_object.first(label);
+        auto db_mask_size = k - 2 * hash_size - 2;
+        auto masked_seed = em.substr(2u, hash_size * 2);
+        auto masked_db = em.substr(hash_size * 2 + 2u);
+        auto seed_mask = qpl::mgf1(qpl::from_hex_string(masked_db), hash_size * 2, hash_object);
+        auto seed = qpl::from_hex_string(qpl::hex_string_xor(seed_mask, masked_seed));
+        auto db_mask = qpl::mgf1(seed, db_mask_size, hash_object);
+        auto db = qpl::hex_string_xor(db_mask, masked_db);
+        auto check_lhash = db.substr(0u, lhash.length());
+
+        //qpl::println("D em = ", em);
+        //qpl::println("D db = ", db);
+        //qpl::println("D db = ", db.length());
+        //qpl::println("D db_mask = ", db_mask.length());
+        //qpl::println("D masked_db = ", masked_db.length());
+
+        if (check_lhash != lhash) {
+            return std::nullopt;
+        }
+        qpl::size ps_index = lhash.length();
+        while (db[ps_index] == '0') {
+            ++ps_index;
+        }
+        if (db[ps_index] != '1') {
+            return std::nullopt;
+        }
+
+        return qpl::from_hex_string(db.substr(ps_index + 1u));
+    }
+
+    template<typename Hash>
+    qpl::size get_max_message_length(Hash hash_object = qpl::sha512_object) const {
+        auto hash_size = hash_object.second / 8u;
+        auto k = this->get_bits() / 8;
+        auto message_length = (k - hash_size * 2 - 2u);
+        return message_length;
+    }
+
+    template<typename Hash>
+    std::optional<std::string> encrypt(const std::string_view& message, Hash hash_object = qpl::sha512_object, std::string label = "") const {
+        auto message_length = this->get_max_message_length(hash_object);
+        auto message_blocks = qpl::signed_cast(message.length() - 1) / qpl::signed_cast(message_length) + 1;
+
+        std::string result;
+        result.reserve(message_blocks * message_length);
+
+        for (qpl::isize i = 0; i < message_blocks; ++i) {
+            auto sub = message.substr(i * message_length, message_length);
+            auto e = this->encrypt_hex_OAEP(sub, hash_object, label);
+            if (!e.has_value()) {
+                return std::nullopt;
+            }
+            result.append(e.value());
+        }
+        //qpl::println("at the end! length is ", result.length());
+        //qpl::println("result is ", result);
+        return result;
+    }
+
+    template<typename Hash>
+    std::optional<std::string> decrypt(const std::string_view& message, Hash hash_object = qpl::sha512_object, std::string label = "") const {
+        auto block_length = this->get_bits() / 4;
+        auto blocks = (message.length()) / block_length;
+
+        //qpl::println("message.length() = ", message.length());
+        //qpl::println("bits = ", this->get_bits());
+        //qpl::println("block_length = ", block_length);
+        //qpl::println("blocks = ", blocks);
+
+        if (message.length() % block_length) {
+            return std::nullopt;
+        }
+
+        std::string result;
+        result.reserve((block_length / 2) * blocks);
+
+        for (qpl::size i = 0u; i < blocks; ++i) {
+            auto sub = message.substr(i * block_length, block_length);
+
+            auto d = this->decrypt_hex_OAEP(sub, hash_object, label);
+
+            if (!d.has_value()) {
+                return std::nullopt;
+            }
+            result.append(d.value());
+        }
+        return result;
+    }
+
 };
 
 template<typename T, qpl::size bits>
@@ -667,8 +831,8 @@ void check_RSA_load() {
     qpl::size success = 0u;
     qpl::clock clock;
 
-    auto primes = qpl::string_split(qpl::filesys::read_file("secret/8192.txt"), '\n');
-    //auto primes = qpl::string_split(qpl::filesys::read_file("secret/4096.txt"), '\n');
+    //auto primes = qpl::string_split(qpl::filesys::read_file("secret/8192.txt"), '\n');
+    auto primes = qpl::string_split(qpl::filesys::read_file("secret/4096.txt"), '\n');
 
     RSA rsa;
 
@@ -687,29 +851,43 @@ void check_RSA_load() {
             mpz_class p2;
             p2.set_str(primes[i2], 16);
 
-            qpl::println("primes[i1] = ", primes[i1]);
-            qpl::println("p1         = ", p1.get_str(16));
-            qpl::println("primes[i2] = ", primes[i2]);
-            qpl::println("p2         = ", p2.get_str(16));
-
             qpl::println("is prime: ", is_prime(p1, 4u));
             qpl::println("is prime: ", is_prime(p2, 4u));
-            qpl::system_pause();
             
             break;
         }
     }
 
-    qpl::println("RSA ", rsa.get_bits()),
-    qpl::println("mod = ", rsa.mod);
-    qpl::println("pri = ", rsa.private_key);
-    qpl::println("pub = ", rsa.public_key);
+    qpl::println("RSA ", rsa.get_bits());
+
+    while (true) {
+        //auto message = qpl::get_random_string_full_range(rsa.get_max_message_length(qpl::sha512_object));
+        //auto e = rsa.encrypt_hex_OAEP(message, qpl::sha512_object).value();
+        //auto d = rsa.decrypt_hex_OAEP(e, qpl::sha512_object).value();
+        auto message = qpl::get_random_string_full_range(100);
+        auto e = rsa.encrypt(message, qpl::sha512_object).value();
+        auto d = rsa.decrypt(e, qpl::sha512_object).value();
+
+        if (d != message) {
+            qpl::println("message = ", qpl::hex_string(message));
+            //qpl::println("e = ", qpl::hex_string(e));
+            qpl::println("e = ", e);
+            qpl::println("d = ", qpl::hex_string(d));
+            qpl::println(qpl::red, "wtf");
+        }
+        else {
+            qpl::println("ok");
+        }
+
+    }
+
+    qpl::system_pause();
 
     for (qpl::size gen = 0u;;) {
 
         auto message = get_random_number<mpz_class>(rsa.get_bits() - 1);
-        auto encrypted = rsa.encrypt(message);
-        auto decrypted = rsa.decrypt(encrypted);
+        auto encrypted = rsa.encrypt_integer(message);
+        auto decrypted = rsa.decrypt_integer(encrypted);
 
         if (decrypted != message) {
             qpl::println("  message = ", qpl::light_red, message);
@@ -756,8 +934,8 @@ void check_RSA() {
 
 
         auto message = get_random_number<mpz_class>(rsa.get_bits());
-        auto encrypted = rsa.encrypt(message);
-        auto decrypted = rsa.decrypt(encrypted);
+        auto encrypted = rsa.encrypt_integer(message);
+        auto decrypted = rsa.decrypt_integer(encrypted);
         
         if (decrypted != message) {
             qpl::println("  message = ", qpl::light_red, message);
@@ -781,22 +959,31 @@ void check_RSA() {
     }
 }
 
-int main() try {
-    //test();
 
+void test_sha256() {
+    std::string text = qpl::get_random_string(128);
+
+    qpl::println("text = ", text);
+    qpl::println("sha512   = ", qpl::sha512_hash(text));
+
+    while (true) {
+        qpl::print("input > ");
+        auto input = qpl::get_input();
+        qpl::println(qpl::mgf1(input, 16u, qpl::sha512_object));
+    }
+}
+
+
+
+void test_RSA() {
     random::init();
-    
-    //find_primes<mpz_class>(2048);
-    //find_primes<mpz_class, 4096u>();
     //find_primes<mpz_class, 4096u * 2>();
-    //find_primes<mpz_class>(4096);
-    //check_RSA<1024 * 1>();
     check_RSA_load();
+}
 
-    //std::string string = "hello world 123125678 hello world 123125678 hello world 123125678";
-    //check_encryption(string, "123456");
-    //
-    //check_mistakes();
+int main() try {
+    //test_sha256(); 
+    test_RSA();
 }
 catch (std::exception& any) {
     qpl::println("caught exception:\n", any.what());
