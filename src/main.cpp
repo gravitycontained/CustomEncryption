@@ -609,17 +609,16 @@ struct RSA {
         }
     }
 
-    auto encrypt_single_hex(const std::string_view& message) const {
+    auto encrypt_single_hex(const std::string& message) const {
         mpz_class n;
-        n.set_str(message.data(), 16);
-
+        n.set_str(message, 16);
         auto str = this->encrypt_integer(n).get_str(16);
         this->pad_string(str);
         return str;
     }
-    auto decrypt_single_hex(const std::string_view& message) const {
+    auto decrypt_single_hex(const std::string& message) const {
         mpz_class n;
-        n.set_str(message.data(), 16);
+        n.set_str(message, 16);
         auto str = this->decrypt_integer(n).get_str(16);
         this->pad_string(str);
         return str;
@@ -643,7 +642,6 @@ struct RSA {
 
         std::string db;
         db.append(lhash);
-        //db.append(qpl::hex_string(ps));
         db.append(ps);
         db.append("01");
         db.append(qpl::hex_string(message));
@@ -670,7 +668,7 @@ struct RSA {
     template<typename Hash>
     std::optional<std::string> decrypt_hex_OAEP(const std::string_view& message, Hash hash_object = qpl::sha512_object, std::string label = "") const {
 
-        auto em = this->decrypt_single_hex(message);
+        auto em = this->decrypt_single_hex(std::string{ message });
         auto hash_size = hash_object.second / 8u;
         auto k = this->get_bits() / 4;
         auto lhash = hash_object.first(label);
@@ -682,12 +680,6 @@ struct RSA {
         auto db_mask = qpl::mgf1(seed, db_mask_size, hash_object);
         auto db = qpl::hex_string_xor(db_mask, masked_db);
         auto check_lhash = db.substr(0u, lhash.length());
-
-        //qpl::println("D em = ", em);
-        //qpl::println("D db = ", db);
-        //qpl::println("D db = ", db.length());
-        //qpl::println("D db_mask = ", db_mask.length());
-        //qpl::println("D masked_db = ", masked_db.length());
 
         if (check_lhash != lhash) {
             return std::nullopt;
@@ -727,8 +719,6 @@ struct RSA {
             }
             result.append(e.value());
         }
-        //qpl::println("at the end! length is ", result.length());
-        //qpl::println("result is ", result);
         return result;
     }
 
@@ -737,12 +727,8 @@ struct RSA {
         auto block_length = this->get_bits() / 4;
         auto blocks = (message.length()) / block_length;
 
-        //qpl::println("message.length() = ", message.length());
-        //qpl::println("bits = ", this->get_bits());
-        //qpl::println("block_length = ", block_length);
-        //qpl::println("blocks = ", blocks);
-
         if (message.length() % block_length) {
+            qpl::println(qpl::yellow, "message.length() = ", message.length());
             return std::nullopt;
         }
 
@@ -751,7 +737,6 @@ struct RSA {
 
         for (qpl::size i = 0u; i < blocks; ++i) {
             auto sub = message.substr(i * block_length, block_length);
-
             auto d = this->decrypt_hex_OAEP(sub, hash_object, label);
 
             if (!d.has_value()) {
@@ -864,15 +849,26 @@ void check_RSA_load() {
         //auto message = qpl::get_random_string_full_range(rsa.get_max_message_length(qpl::sha512_object));
         //auto e = rsa.encrypt_hex_OAEP(message, qpl::sha512_object).value();
         //auto d = rsa.decrypt_hex_OAEP(e, qpl::sha512_object).value();
-        auto message = qpl::get_random_string_full_range(100);
-        auto e = rsa.encrypt(message, qpl::sha512_object).value();
-        auto d = rsa.decrypt(e, qpl::sha512_object).value();
+        auto message = qpl::get_random_string_full_range(qpl::random(1, 1000));
 
-        if (d != message) {
+
+        auto e = rsa.encrypt(message, qpl::sha512_object);
+        if (!e.has_value()) {
+            qpl::println(qpl::light_red, " encryption failed!");
+            qpl::system_pause();
+        }
+
+        auto d = rsa.decrypt(e.value(), qpl::sha512_object);
+        if (!d.has_value()) {
+            qpl::println(qpl::light_red, " decryption failed!");
+            qpl::system_pause();
+        }
+
+        if (d.value() != message) {
             qpl::println("message = ", qpl::hex_string(message));
             //qpl::println("e = ", qpl::hex_string(e));
-            qpl::println("e = ", e);
-            qpl::println("d = ", qpl::hex_string(d));
+            qpl::println("e = ", e.value());
+            qpl::println("d = ", qpl::hex_string(d.value()));
             qpl::println(qpl::red, "wtf");
         }
         else {
