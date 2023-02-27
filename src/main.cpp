@@ -457,7 +457,7 @@ constexpr static auto RSA_subs = std::array{
     /*10 */ 16u,
     /*11 */ 17u,
     /*12 */ 20u,
-    /*13 */ 22u,
+    /*13 */ 24u,
     /*14 */ 24u,
 };
 template<qpl::size bits>
@@ -545,9 +545,7 @@ void check_RSA_load() {
             i2 = qpl::random(0ull, primes.size() - 1);
         }
 
-
         if (rsa.check(primes[i1], primes[i2])) {
-
             mpz_class p1;
             p1.set_str(primes[i1], 16);
             mpz_class p2;
@@ -566,6 +564,16 @@ void check_RSA_load() {
 
     qpl::println("public  = ", public_key.string());
     qpl::println("private = ", private_key.string());
+
+    while (true) {
+        auto sign = qpl::RSASSA_PSS_sign("test", private_key);
+        if (qpl::RSASSA_PSS_verify(sign, "test", public_key)) {
+            qpl::println(qpl::green, "verified!");
+        }
+        else {
+            qpl::println(qpl::red, "not verified!");
+        }
+    }
 
     while (true) {
         //auto message = qpl::get_random_string_full_range(rsa.get_max_message_length(qpl::sha512_object));
@@ -623,6 +631,80 @@ void check_RSA_load() {
             qpl::println(qpl::light_red, "    fails = ", qpl::big_number_string(gen - success));
             qpl::println(qpl::big_number_string(qpl::f64_cast(gen) / clock.elapsed_f()), " / sec");
             qpl::println();
+        }
+    }
+}
+
+template<qpl::size bits>
+void find_prime_pair() {
+    while (true) {
+        auto primes = qpl::string_split(qpl::filesys::read_file(qpl::to_string("secret/", bits, ".txt")), '\n');
+        qpl::RSA rsa;
+
+        while (true) {
+            qpl::size i1 = qpl::random(0ull, primes.size() - 1);
+            qpl::size i2 = i1;
+            while (i2 == i1) {
+                i2 = qpl::random(0ull, primes.size() - 1);
+            }
+
+            if (rsa.check(primes[i1], primes[i2])) {
+                mpz_class p1;
+                p1.set_str(primes[i1], 16);
+                mpz_class p2;
+                p2.set_str(primes[i2], 16);
+
+                qpl::println("is prime: ", is_prime(p1, 4u));
+                qpl::println("is prime: ", is_prime(p2, 4u));
+
+                qpl::println("p1 = ", p1, " (length = ", p1.get_str(10).length(), ")");
+                qpl::println("p2 = ", p2, " (length = ", p2.get_str(10).length(), ")");
+
+                break;
+            }
+        }
+
+        qpl::println("RSA ", rsa.get_bits());
+        auto public_key = rsa.get_public_key();
+        auto private_key = rsa.get_private_key();
+
+        qpl::println("public  = ", public_key.string());
+        qpl::println("private = ", private_key.string());
+    }
+}
+
+void check_RSA_verify() {
+
+    qpl::RSA_verifier sign;
+    sign.cipher_key.create(
+        "9701a5c1a68b3f8d6b34d41dca39c5e0ce131c93e474286e1c3f71858b5edafb636f5b19e6965763278d2130a1e569b02eeb7059fd75817d40f90ee19d6bca9764d944070a5749f990973f430f648059c237cb15d6865194b21652291b9d47433224fd63cb2befb0dd52efaa378c5fa94f14d437e3c19501c9b39615bb08931820960c5c38ebc0342056ae3ba2357ea904b6bf63b25c62b39f7552ff0a4089791fec768206fb8e80936495a905002589cfd93e9f779d00968002df368abe5097ef9ee0be118881d345105f26e333231ac0b41a0f2fdf735e7b7d305ac4b16ee29e1a0482cb1b0fe41dd539aac06933bab5ffcd602964e3c6ec118583467b860095e38efa48e2cf2bc4d00b4af7d8451e188dcd1fa642e81b72d0640dc966c1c36db32bca1fb530076756d3c6fc0dcf7b7a6e3a993d88ad874d84ed2cb162c3827bd2283827b5440754686b318d10ffa7e10987f98f8c285ef59d465a5f7b980a22723d92a4e35859648c7a7f5be91ca51bf0fb5a472ed420f9663a5aa2813f14be4855d126d7784d7dd017b2cdd38ce1ef956d31982b7adf5954b7da48287b826e3e87b1dd0a26df1d08b0b567c36062bc9d234cc0c6e818c88884fd3009a9f1c39c6e57708ff3f62e5e7695dd9b4965884fd15380d9f5e53edb4deca658abd717a78ab48180437c12e3d14a0c1aafc70f0cdfe68bdce6c75e12f876cf347367cf",
+        "8003"
+    );
+    sign.signature_key.create(
+        "de4077fafaaa8c2da7f0729edc021fdae93ed9e4fcca1ceb954a6bf1489f34d48669f87a2e27b17662824c46254383921c76cda47726c5433505de0608a52b1487d23aa266d306843bf6c7239a60fa670bc8e7f1246035c52c710590c5f75d35ebfc3ebede4d71368962c409b382e8676b27ac5ae6832a3f189d080576e534548f7cdcae11c740793cb721524f828d4b29b15d9e2cc5cf9e5c69954d384248939f819112b33dcf3803ab2d99d6a237c47645eeeb8ccf312ddad844b5cdbbce50bc0a4e9854dd53b6f1ee1867a5d8d14f857f6d0d8a912fb6b617c5507570cf291e56233c90493ba2c9c11f33d369505de38abf1d5c68cfc9bf73811ca90bde4585506c0d56fa25b4681f95b084931e2852a2616bc54193526b3c540f3a6d67ec4b69a1f8aea5b084c1e81fadfc8226a21487159b171f5cb21f2c9f8d39520b43d68fc9b61caa254b8cb215767ffa2ce01bd817679440650343cc38383e8a6e8f979f4fa2ca840525a30a16195752325af679671c39f44c7181f1d4d73ef5f76ad1cbda5c50240754a3c65644824c39d980868012fc629c6a15fa9dd51c68a37f995bfc9159472b9c20e6ae54a499981ccf22d76cdd902eee517118f169bbfe4bd217896aa2e679830c82c99fd37ca971ba35b7564323dd287ccd4acfb29bd0398d91d14230df400c46da317f26e0351d905c6a2437ab4e81e29d7fd1929037dd",
+        "8001"
+    );
+
+    qpl::RSA_verifier verifier;
+    verifier.cipher_key.create(
+        "9701a5c1a68b3f8d6b34d41dca39c5e0ce131c93e474286e1c3f71858b5edafb636f5b19e6965763278d2130a1e569b02eeb7059fd75817d40f90ee19d6bca9764d944070a5749f990973f430f648059c237cb15d6865194b21652291b9d47433224fd63cb2befb0dd52efaa378c5fa94f14d437e3c19501c9b39615bb08931820960c5c38ebc0342056ae3ba2357ea904b6bf63b25c62b39f7552ff0a4089791fec768206fb8e80936495a905002589cfd93e9f779d00968002df368abe5097ef9ee0be118881d345105f26e333231ac0b41a0f2fdf735e7b7d305ac4b16ee29e1a0482cb1b0fe41dd539aac06933bab5ffcd602964e3c6ec118583467b860095e38efa48e2cf2bc4d00b4af7d8451e188dcd1fa642e81b72d0640dc966c1c36db32bca1fb530076756d3c6fc0dcf7b7a6e3a993d88ad874d84ed2cb162c3827bd2283827b5440754686b318d10ffa7e10987f98f8c285ef59d465a5f7b980a22723d92a4e35859648c7a7f5be91ca51bf0fb5a472ed420f9663a5aa2813f14be4855d126d7784d7dd017b2cdd38ce1ef956d31982b7adf5954b7da48287b826e3e87b1dd0a26df1d08b0b567c36062bc9d234cc0c6e818c88884fd3009a9f1c39c6e57708ff3f62e5e7695dd9b4965884fd15380d9f5e53edb4deca658abd717a78ab48180437c12e3d14a0c1aafc70f0cdfe68bdce6c75e12f876cf347367cf",
+        "fa1e4ded44616fad9454b8a244feb5607319d5ebb81859a6cbc2116fde8e994674bfe9591f70ad7d9ec27f3ba3c83eb0f0933d58a156adc778c3bba035131fd4a9822d32da6019b95cbb5dd6d2a67af5cd85bab67c64f525a15e514350ba537dca4da82b2dba655d896df98d0d55a7347a5492ce63e083a13066e963e6ca7b6a42fcfbeb9c8459f83d0027fcb8766a595c46cec03d22ba6f4cb87c78ae17732c81669aa723c63d186d953ca9dedd54fe9ae52bed00857fa84f7ae4feeb3a5e027a4f404d571b24eb2a147223ade4d1f994fcd87db54ad54ab2aedfd01c917f55480548f932ba53a4d9cdea02ed48b48c3dd1993a83329c60092b8f3469b68361fc5af53b8c76f1aac3249ab8d3ec1567b7736de27bb64935c9f26dcf2c890c47c7614c24551665e0e433e6975cbeff6149fb2e4bec858176e50968c4a4cf6507c0b3fc54a2f662728927aa3fcb2ff56e1664c05cc37152ac1cbadaade0a5531d246f674440caf5fec7a92df3756c0a2685225025503b70e772061003010b2993e24069bb40e556762207da46f724ba26a4016a6510c8fc9a7acdc284ad465cdfc2771137d7b6886c0bb9bd6a58e631b18ca70c3ba7356dcfd656b94645bb42ec47a26c9af263e10b4a9ab62341b71bc2de521bae66855542c3e3b87dfee9a6fc1de1cae6ca674c7ad53ec4da3840b1f6aa3fbb0d3fb1111812be35df55dfa9abf"
+    );
+    verifier.signature_key.create(
+        "de4077fafaaa8c2da7f0729edc021fdae93ed9e4fcca1ceb954a6bf1489f34d48669f87a2e27b17662824c46254383921c76cda47726c5433505de0608a52b1487d23aa266d306843bf6c7239a60fa670bc8e7f1246035c52c710590c5f75d35ebfc3ebede4d71368962c409b382e8676b27ac5ae6832a3f189d080576e534548f7cdcae11c740793cb721524f828d4b29b15d9e2cc5cf9e5c69954d384248939f819112b33dcf3803ab2d99d6a237c47645eeeb8ccf312ddad844b5cdbbce50bc0a4e9854dd53b6f1ee1867a5d8d14f857f6d0d8a912fb6b617c5507570cf291e56233c90493ba2c9c11f33d369505de38abf1d5c68cfc9bf73811ca90bde4585506c0d56fa25b4681f95b084931e2852a2616bc54193526b3c540f3a6d67ec4b69a1f8aea5b084c1e81fadfc8226a21487159b171f5cb21f2c9f8d39520b43d68fc9b61caa254b8cb215767ffa2ce01bd817679440650343cc38383e8a6e8f979f4fa2ca840525a30a16195752325af679671c39f44c7181f1d4d73ef5f76ad1cbda5c50240754a3c65644824c39d980868012fc629c6a15fa9dd51c68a37f995bfc9159472b9c20e6ae54a499981ccf22d76cdd902eee517118f169bbfe4bd217896aa2e679830c82c99fd37ca971ba35b7564323dd287ccd4acfb29bd0398d91d14230df400c46da317f26e0351d905c6a2437ab4e81e29d7fd1929037dd",
+        "1870b8104a864243d4cb3894651af598e0aaa712ef62bf2eadda866fc8d3e8607a531cabfe5162d2362ad5db9f0bd19563348e2e34b9fb0770fad637cf6dc30448f31d8a76e7d10cd29a7b2b44f896383e8c47e125f4c4a038a5b0884da49b97e1d6c69ce22a91d912a39635c0b128fa6584dedb75588be93e7b6fd5f22a4a4fa3f43c402ff6207bd4249f41d5b8b8e64d3625d64451ec341ad36ac35b641b40fd6d7dc029f3bd2d3794d8e7141b48996aaad5737e62202d41917b53638c1b150cb3acc348f690f2a16fa311c7ca6b57bf07c84787a8ee0464b78dc4c090b9b69b27d4aa54ad54533b376566a13777669463ae42f70e9c947f83cdb0327aa828e3611e77952b15eab09d10df9d5d6321200d786919cf12d79b987fa5a16d2ba1e6ddee013f22fb879937bdca79ad5da561d547e78ec47e2de03337621f54f194420f2f008d8db24360b8b5cfea8a342514ba9fe6b3360b6647eea438a31c475f037ce2d5dc5f5cf4b0dc976da90f0120eba9f76b4e4af95742bda7d2a0e2ab56a4de79af80e6f3c5827aa2bd466838147aac1275218b91f94ef73d6025ae283b02d58d3f552de8f7300e6ffb87024737b8c2eb69b13848d2374f4448cc462ac6d75a10df703db821497a1c5f7becefab4143fd28bd1c2c9d118a84dbb4d988adedb798a5e8afaedcc074c89a170e6fceb2132b4d1e5487ee3099b9753945e3b1"
+    );
+
+    while (true) {
+        auto message = qpl::get_random_lowercase_uppercase_number_string(qpl::random(1'000, 10'000));
+        auto result = sign.sign_and_encrypt(message, "signature");
+        auto back = verifier.verify_and_decrypt(result.value(), "signature");
+
+        if (back.has_value() && back.value() == message) {
+            qpl::println("worked! - all ", message.length(), " bytes matched & are verified");
+        }
+        else {
+            qpl::println("didn't work!");
         }
     }
 }
@@ -687,18 +769,18 @@ void test_sha256() {
     }
 }
 
-
-
 void test_RSA() {
     random::init();
     check_RSA_load();
 }
 
 int main() try {
+    find_prime_pair<2048>();
 
-    //find_primes<mpz_class, 2048u>();
+    //find_primes<mpz_class, 2048u * 1u>();
     //test_sha256(); 
-    test_RSA();
+    //test_RSA();
+    //check_RSA_verify();
 }
 catch (std::exception& any) {
     qpl::println("caught exception:\n", any.what());
