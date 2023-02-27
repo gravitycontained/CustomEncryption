@@ -654,13 +654,57 @@ void find_prime_pair() {
                 mpz_class p2;
                 p2.set_str(primes[i2], 16);
 
-                qpl::println("is prime: ", is_prime(p1, 4u));
-                qpl::println("is prime: ", is_prime(p2, 4u));
-
-                qpl::println("p1 = ", p1, " (length = ", p1.get_str(10).length(), ")");
-                qpl::println("p2 = ", p2, " (length = ", p2.get_str(10).length(), ")");
+                qpl::println("is prime: ", is_prime(p1, 32u));
+                qpl::println("is prime: ", is_prime(p2, 32u));
 
                 break;
+            }
+        }
+
+        qpl::println("RSA ", rsa.get_bits());
+        auto public_key = rsa.get_public_key();
+        auto private_key = rsa.get_private_key();
+
+        qpl::println("public  = ", public_key.string());
+        qpl::println("private = ", private_key.string());
+    }
+}
+
+template<qpl::size bits>
+void find_new_prime_pair() {
+
+    std::vector<mpz_class> primes;
+    while (true) {
+        qpl::RSA rsa;
+
+        bool found = false;
+        while (!found) {
+            qpl::println("finding two new primes with ", bits, " bits");
+            auto get = get_two_strong_primes<mpz_class, 12u>(bits, get_sub<bits>(), 1u);
+            primes.push_back(get.first);
+            primes.push_back(get.second);
+
+            for (qpl::size f = 0u; primes.size() >= 4u && f < 10u; ++f) {
+                qpl::size i1 = qpl::random(0ull, primes.size() - 1);
+                qpl::size i2 = i1;
+                while (i2 == i1) {
+                    i2 = qpl::random(0ull, primes.size() - 1);
+                }
+
+                if (rsa.check(primes[i1], primes[i2])) {
+                    qpl::println("is prime: ", is_prime(primes[i1], 32u));
+                    qpl::println("is prime: ", is_prime(primes[i2], 32u));
+
+                    qpl::println("primes size = ", primes.size());
+                    qpl::remove_index(primes, qpl::max(i1, i2));
+                    qpl::remove_index(primes, qpl::min(i1, i2));
+                    qpl::println("primes size = ", primes.size());
+                    found = true;
+                    break;
+                }
+                else {
+                    qpl::println("rejected last two found primes search");
+                }
             }
         }
 
@@ -775,7 +819,8 @@ void test_RSA() {
 }
 
 int main() try {
-    find_prime_pair<2048>();
+    //find_prime_pair<2048>();
+    find_new_prime_pair<2048>();
 
     //find_primes<mpz_class, 2048u * 1u>();
     //test_sha256(); 
