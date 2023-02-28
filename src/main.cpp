@@ -735,10 +735,10 @@ void find_two_prime_pairs() {
 
 void check_RSA_cipher() {
 
-    qpl::RSASSA_PSS_OAEP_CIPHER < qpl::cipher_config{ 4, 3, 64, 64, 0.001, true } > encrypter;
-    qpl::RSASSA_PSS_OAEP_CIPHER < qpl::cipher_config{ 4, 3, 64, 64, 0.001, true } > decrypter;
-    encrypter.rsa.load_keys("secret/sign.txt");
-    decrypter.rsa.load_keys("secret/verify.txt");
+    qpl::RSASSA_PSS_OAEP_CIPHER<qpl::cipher_secure> encrypter;
+    qpl::RSASSA_PSS_OAEP_CIPHER<qpl::cipher_secure> decrypter;
+    encrypter.rsa.load_keys_from_file("secret/sign.txt");
+    decrypter.rsa.load_keys_from_file("secret/verify.txt");
 
     while (true) {
         //auto message = qpl::get_random_string_full_range_with_repetions(qpl::random(1, 1000), 10);
@@ -769,14 +769,14 @@ void check_RSA_cipher() {
 void check_RSA_verify() {
 
     qpl::RSASSA_PSS_OAEP sign;
-    sign.load_keys("secret/sign.txt");
+    sign.load_keys_from_file("secret/sign.txt");
 
 
     qpl::println(sign.cipher_key.string());
     qpl::println(sign.signature_key.string());
 
     qpl::RSASSA_PSS_OAEP verify;
-    verify.load_keys("secret/verify.txt");
+    verify.load_keys_from_file("secret/verify.txt");
 
     qpl::println(verify.cipher_key.string());
     qpl::println(verify.signature_key.string());
@@ -862,10 +862,10 @@ void test_RSA() {
 
 
 int main() try {
-    //find_two_prime_pairs<2048 * 2>();
+    find_two_prime_pairs<1024 * 2>();
 
     //check_RSA_verify();
-    check_RSA_cipher();
+    //check_RSA_cipher();
 }
 catch (std::exception& any) {
     qpl::println("caught exception:\n", any.what());
