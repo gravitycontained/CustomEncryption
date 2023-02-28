@@ -151,7 +151,7 @@ void create_output() {
     auto key = qpl::get_random_string_full_range(64);
     constexpr auto l = qpl::gebibyte(1);
 
-    auto message = qpl::get_random_string_full_range_with_repetions(l, 10000);
+    auto message = qpl::get_random_string_full_range_with_repetitions(l, 10000);
 
     qpl::small_clock clock;
     auto encrypted = ::encrypted(message, key);
@@ -676,7 +676,7 @@ void find_two_prime_pairs() {
         bool found = false;
         while (!found) {
             qpl::println("searching for 4 new primes with ", bits, " bits");
-            auto get = get_n_strong_primes<mpz_class, 4u, 12u>(bits, get_sub<bits>(), 1u);
+            auto get = get_n_strong_primes<mpz_class, 4u, 12u>(bits, get_sub<bits>(), 6u);
             for (auto& i : get) {
                 primes.push_back(i);
             }
@@ -735,33 +735,34 @@ void find_two_prime_pairs() {
 
 void check_RSA_cipher() {
 
-    qpl::RSASSA_PSS_OAEP_CIPHER < qpl::cipher_config{ 4, 3, 64, 64, 0.0, true } > encrypter;
-    qpl::RSASSA_PSS_OAEP_CIPHER < qpl::cipher_config{ 4, 3, 64, 64, 0.0, true } > decrypter;
+    qpl::RSASSA_PSS_OAEP_CIPHER < qpl::cipher_config{ 4, 3, 64, 64, 0.001, true } > encrypter;
+    qpl::RSASSA_PSS_OAEP_CIPHER < qpl::cipher_config{ 4, 3, 64, 64, 0.001, true } > decrypter;
     encrypter.rsa.load_keys("secret/sign.txt");
     decrypter.rsa.load_keys("secret/verify.txt");
 
-    //auto message = qpl::get_random_string_full_range_with_repetions(qpl::random(1, 1000), 10);
-    auto message = qpl::get_random_lowercase_uppercase_number_string(qpl::random(1, 1000));
+    while (true) {
+        //auto message = qpl::get_random_string_full_range_with_repetions(qpl::random(1, 1000), 10);
+        //auto message = qpl::get_random_lowercase_uppercase_number_string(qpl::random(1, 1000));
+        auto message = qpl::get_random_string_full_range_with_repetitions(qpl::random(100'000, 10'000'000), 10);
 
-    auto encrypted = encrypter.encrypt(message, "secret cipher key", "signature");
+        auto encrypted = encrypter.encrypt(message, "secret cipher key", "signature");
 
-    if (!encrypted.has_value()) {
-        qpl::println("couldn't encrypt the text");
-    }
-    auto decrypted = decrypter.decrypt(encrypted.value(), "signature");
+        if (!encrypted.has_value()) {
+            qpl::println("couldn't encrypt the text");
+        }
+        auto decrypted = decrypter.decrypt(encrypted.value(), "signature");
 
 
-    if (!decrypted.has_value()) {
-        qpl::println("couldn't decrypt the text");
-    }
+        if (!decrypted.has_value()) {
+            qpl::println("couldn't decrypt the text");
+        }
 
-    if (message == decrypted.value()) {
-        qpl::println("worked!");
-    }
-    else {
-        qpl::println("message = ", message);
-        qpl::println(qpl::red, "decrypted = ", qpl::hex_string(decrypted.value()));
-        qpl::println("doesn't match!");
+        if (message == decrypted.value()) {
+            qpl::println(qpl::aqua, "worked! - all ", message.length(), " bytes matched");
+        }
+        else {
+            qpl::println(qpl::red, message.length(), " doesn't match!");
+        }
     }
 }
 
@@ -861,17 +862,7 @@ void test_RSA() {
 
 
 int main() try {
-
-    qpl::cipherN < qpl::cipher_config{ 4, 3, 64, 64, 0.0, true } > cipher;
-    auto message = "78393866304d394b";
-    auto encrypted = cipher.encrypted(message, "secret cipher key");
-    auto decrypted = cipher.decrypted(encrypted, "secret cipher key");
-
-    qpl::println("message   = ", message);
-    qpl::println("encrypted   = ", qpl::hex_string(encrypted));
-    qpl::println("decrypted = ", decrypted);
-
-    //find_two_prime_pairs<2048>();
+    //find_two_prime_pairs<2048 * 2>();
 
     //check_RSA_verify();
     check_RSA_cipher();
