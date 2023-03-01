@@ -716,7 +716,7 @@ void find_two_prime_pairs() {
         key_pairs.push_back(public_key);
         key_pairs.push_back(private_key);
     }
-    qpl::println("signature & encryption -");
+    qpl::println("encryption & signature-");
     qpl::println((key_pairs[0].mod.get_str(16)));
     qpl::println((key_pairs[0].key.get_str(16)));
     qpl::println();
@@ -724,7 +724,7 @@ void find_two_prime_pairs() {
     qpl::println((key_pairs[3].key.get_str(16)));
     qpl::println();
     
-    qpl::println("verify & decryption -");
+    qpl::println("decryption & verify -");
     qpl::println((key_pairs[1].mod.get_str(16)));
     qpl::println((key_pairs[1].key.get_str(16)));
     qpl::println();
