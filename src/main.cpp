@@ -860,9 +860,9 @@ void test_RSA() {
     check_RSA_load();
 }
 
-
 int main() try {
-    find_two_prime_pairs<1024 * 2>();
+
+    find_two_prime_pairs<1024 * 4>();
 
     //check_RSA_verify();
     //check_RSA_cipher();
